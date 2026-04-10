@@ -1,10 +1,9 @@
 // ========================================================
-// DATA DEFINITIONS
+// DATA
 // ========================================================
 const RISKS = {
   accident: {
-    label: 'Acidentes',
-    type: 'accident',
+    label: 'Acidentes', type: 'accident',
     items: [
       'Abastecimento de veículos, máquinas, motores','Afogamento',
       'Ataques de animais (domésticos / semelhantes)','Ataques de animais peçonhentos',
@@ -22,8 +21,7 @@ const RISKS = {
     ]
   },
   biological: {
-    label: 'Biológicos',
-    type: 'biological',
+    label: 'Biológicos', type: 'biological',
     items: [
       'Água parada / Parasitas / Insetos','Contato com cadáveres',
       'Contato com material infecto-contagiantes','Contato com pacientes possivelmente infectados',
@@ -32,8 +30,7 @@ const RISKS = {
     ]
   },
   ergonomic: {
-    label: 'AEP – Avaliação Ergonômica Preliminar',
-    type: 'ergonomic',
+    label: 'AEP – Avaliação Ergonômica Preliminar', type: 'ergonomic',
     items: [
       'Acúmulo de horas extras','Ausência de móvel / dispositivo / equipamento',
       'Esforço fonatório (vocal)','Estresse psíquico',
@@ -45,8 +42,7 @@ const RISKS = {
     ]
   },
   physical: {
-    label: 'Físicos',
-    type: 'physical',
+    label: 'Físicos', type: 'physical',
     items: [
       'Calor por fonte natural (cabine de veículos)','Exposição a calor (gerado por fonte artificial)',
       'Exposição ao frio (câmaras frias)','Exposição aos raios solares / radiação ultravioleta',
@@ -56,8 +52,7 @@ const RISKS = {
     ]
   },
   chemical: {
-    label: 'Químicos',
-    type: 'chemical',
+    label: 'Químicos', type: 'chemical',
     items: [
       'Aplicação de defensivos agrícolas','Aplicação de inseticidas',
       'Contato com óleos e graxas / Superlub','Contato com substâncias químicas em geral',
@@ -94,52 +89,49 @@ const TRAININGS = [
   'NR 36','NR 38','NT 12'
 ];
 
-const PERICULOSIDADE = [
-  'Explosivos','Inflamáveis','Segurança patrimonial','Eletricidade','Motocicletas'
-];
-
-const APOSENTADORIA = [
-  'Mineração subterrânea','Operação de compactador de solo (sapin)','Esvaziamento de biodigestores'
-];
+const PERICULOSIDADE = ['Explosivos','Inflamáveis','Segurança patrimonial','Eletricidade','Motocicletas'];
+const APOSENTADORIA = ['Mineração subterrânea','Operação de compactador de solo (sapin)','Esvaziamento de biodigestores'];
 
 // ========================================================
 // STATE
 // ========================================================
-let state = {
-  companies: [],
+var state = {
   currentCompany: null,
   riskData: {},
   epiData: {},
   trainingData: {},
   customTrainings: [],
   periculosidadeData: {},
-  aposentadoriaData: {},
-  formFields: {},
-  responsavel: '',
-  signature: ''
+  aposentadoriaData: {}
 };
 
-const STORAGE_PREFIX = 'cg_';
+var STORAGE_PREFIX = 'cg_';
+
+// Safe base64 for unicode strings
+function safeB64(str) {
+  return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(_, p1) {
+    return String.fromCharCode(parseInt(p1, 16));
+  }));
+}
 
 function loadCompanies() {
-  const raw = localStorage.getItem(STORAGE_PREFIX + 'companies');
-  return raw ? JSON.parse(raw) : [];
+  try { return JSON.parse(localStorage.getItem(STORAGE_PREFIX + 'companies')) || []; }
+  catch(e) { return []; }
 }
 
-function saveCompanies(companies) {
-  localStorage.setItem(STORAGE_PREFIX + 'companies', JSON.stringify(companies));
+function saveCompanies(c) {
+  localStorage.setItem(STORAGE_PREFIX + 'companies', JSON.stringify(c));
 }
 
-function checklistKey(company, setor, cargo) {
-  return STORAGE_PREFIX + 'cl_' + btoa(unescape(encodeURIComponent(company + '|' + setor + '|' + cargo)));
+function clKey(company, setor, cargo) {
+  return STORAGE_PREFIX + 'cl_' + safeB64(company + '|' + (setor||'_') + '|' + (cargo||'_'));
 }
 
 function saveChecklist() {
-  const setor = document.getElementById('setorSelect').value;
-  const cargo = document.getElementById('cargoSelect').value;
   if (!state.currentCompany) return;
-
-  const data = {
+  var s = document.getElementById('setorSelect').value;
+  var c = document.getElementById('cargoSelect').value;
+  var data = {
     riskData: state.riskData,
     epiData: state.epiData,
     trainingData: state.trainingData,
@@ -150,29 +142,26 @@ function saveChecklist() {
     signature: getSignatureData(),
     formFields: collectFormFields()
   };
-
-  const key = checklistKey(state.currentCompany, setor || '_', cargo || '_');
-  localStorage.setItem(key, JSON.stringify(data));
+  localStorage.setItem(clKey(state.currentCompany, s, c), JSON.stringify(data));
 }
 
 function loadChecklist() {
-  const setor = document.getElementById('setorSelect').value;
-  const cargo = document.getElementById('cargoSelect').value;
   if (!state.currentCompany) return null;
-  const key = checklistKey(state.currentCompany, setor || '_', cargo || '_');
-  const raw = localStorage.getItem(key);
-  return raw ? JSON.parse(raw) : null;
+  var s = document.getElementById('setorSelect').value;
+  var c = document.getElementById('cargoSelect').value;
+  try { return JSON.parse(localStorage.getItem(clKey(state.currentCompany, s, c))); }
+  catch(e) { return null; }
 }
 
 function collectFormFields() {
-  const fields = {};
+  var fields = {};
   ['dataVisita','dataVencExtintores','funcionario','local',
    'peDireito','piso','telhado','ventilacao','iluminacao','paredes',
-   'atribuicoes','obsGerais'].forEach(id => {
-    const el = document.getElementById(id);
+   'atribuicoes','obsGerais'].forEach(function(id) {
+    var el = document.getElementById(id);
     if (el) fields[id] = el.value;
   });
-  const rad = document.querySelector('input[name="adicional"]:checked');
+  var rad = document.querySelector('input[name="adicional"]:checked');
   fields.adicional = rad ? rad.value : '';
   fields.setor = document.getElementById('setorSelect').value;
   fields.cargo = document.getElementById('cargoSelect').value;
@@ -181,87 +170,113 @@ function collectFormFields() {
 
 function restoreFormFields(fields) {
   if (!fields) return;
-  Object.entries(fields).forEach(([id, val]) => {
+  Object.keys(fields).forEach(function(id) {
+    var val = fields[id];
     if (id === 'adicional') {
-      const r = document.querySelector(`input[name="adicional"][value="${val}"]`);
-      if (r) r.checked = true;
-    } else if (id === 'setor' || id === 'cargo') {
-      // handled separately
-    } else {
-      const el = document.getElementById(id);
+      var r = document.querySelector('input[name="adicional"][value="' + val + '"]');
+      if (r) { r.checked = true; updateRadioStyles(); }
+    } else if (id !== 'setor' && id !== 'cargo') {
+      var el = document.getElementById(id);
       if (el) el.value = val;
     }
   });
 }
 
 // ========================================================
+// RADIO STYLES (replace :has() for compat)
+// ========================================================
+function updateRadioStyles() {
+  document.querySelectorAll('.radio-label').forEach(function(lbl) {
+    var inp = lbl.querySelector('input[type="radio"]');
+    lbl.classList.toggle('selected', inp && inp.checked);
+  });
+}
+
+document.getElementById('adicionalGroup').addEventListener('click', function(e) {
+  var label = e.target.closest('.radio-label');
+  if (!label) return;
+  var inp = label.querySelector('input[type="radio"]');
+  if (inp) { inp.checked = true; updateRadioStyles(); }
+});
+
+// ========================================================
 // RENDER: RISKS
 // ========================================================
 function renderRisks() {
-  const container = document.getElementById('risksContainer');
+  var container = document.getElementById('risksContainer');
   container.innerHTML = '';
 
-  Object.entries(RISKS).forEach(([catKey, cat]) => {
-    const catDiv = document.createElement('div');
+  Object.keys(RISKS).forEach(function(catKey) {
+    var cat = RISKS[catKey];
+    var catDiv = document.createElement('div');
     catDiv.className = 'risk-category';
 
-    const header = document.createElement('div');
-    header.className = `risk-category-header risk-type-${cat.type}`;
+    var header = document.createElement('div');
+    header.className = 'risk-category-header risk-type-' + cat.type;
     header.textContent = cat.label;
     catDiv.appendChild(header);
 
-    cat.items.forEach((item, idx) => {
-      const key = `${catKey}_${idx}`;
-      const rd = state.riskData[key] || {};
+    cat.items.forEach(function(item, idx) {
+      var key = catKey + '_' + idx;
+      var rd = state.riskData[key] || {};
 
-      const row = document.createElement('div');
+      var row = document.createElement('div');
       row.className = 'risk-item';
-      row.dataset.type = cat.type;
-      row.dataset.key = key;
+      row.setAttribute('data-type', cat.type);
+      row.setAttribute('data-key', key);
       if (rd.checked) row.classList.add('active');
       if (rd.frequency) row.classList.add('has-freq');
-      if (rd.photo) row.classList.add('has-photo');
-      if (rd.notes) row.classList.add('has-notes');
       if (rd.checked && rd.desc) row.classList.add('complete');
 
-      const cb = document.createElement('input');
+      var cb = document.createElement('input');
       cb.type = 'checkbox';
+      cb.className = 'risk-cb';
       cb.checked = !!rd.checked;
-      cb.addEventListener('change', () => {
-        if (!state.riskData[key]) state.riskData[key] = {};
-        state.riskData[key].checked = cb.checked;
-        row.classList.toggle('active', cb.checked);
-        if (cb.checked) {
-          openRiskModal(key, item);
-        }
-        updateDots(row, key);
-      });
 
-      const label = document.createElement('span');
+      cb.addEventListener('change', (function(k, itm, r, c) {
+        return function() {
+          if (c.checked) {
+            if (!state.riskData[k]) state.riskData[k] = {};
+            state.riskData[k].checked = true;
+            r.classList.add('active');
+            openRiskModal(k, itm);
+          } else {
+            if (state.riskData[k]) state.riskData[k].checked = false;
+            r.classList.remove('active', 'complete', 'has-freq');
+          }
+          refreshDots(r, k);
+        };
+      })(key, item, row, cb));
+
+      var label = document.createElement('span');
       label.className = 'risk-item-label';
       label.textContent = item;
 
-      const icons = document.createElement('span');
+      var icons = document.createElement('span');
       icons.className = 'risk-item-icons';
 
-      const badgeFreq = document.createElement('span');
-      badgeFreq.className = 'badge-freq';
-      badgeFreq.textContent = rd.frequency || '';
+      var badge = document.createElement('span');
+      badge.className = 'badge-freq';
+      badge.textContent = formatFreq(rd);
 
-      const dotDone = document.createElement('span');
-      dotDone.className = 'dot-done';
+      var dot = document.createElement('span');
+      dot.className = 'dot-done';
 
-      const btnEdit = document.createElement('button');
+      var btnEdit = document.createElement('button');
+      btnEdit.type = 'button';
       btnEdit.className = 'icon-btn';
-      btnEdit.title = 'Editar detalhes';
       btnEdit.textContent = '✏️';
-      btnEdit.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openRiskModal(key, item);
-      });
 
-      icons.append(badgeFreq, dotDone, btnEdit);
-      row.append(cb, label, icons);
+      btnEdit.addEventListener('click', (function(k, itm) {
+        return function(e) { e.stopPropagation(); openRiskModal(k, itm); };
+      })(key, item));
+
+      icons.appendChild(badge);
+      icons.appendChild(dot);
+      icons.appendChild(btnEdit);
+      row.appendChild(cb);
+      row.appendChild(label);
+      row.appendChild(icons);
       catDiv.appendChild(row);
     });
 
@@ -269,60 +284,69 @@ function renderRisks() {
   });
 }
 
-function updateDots(row, key) {
-  const rd = state.riskData[key] || {};
+function formatFreq(rd) {
+  if (!rd || !rd.frequency) return '';
+  if (rd.frequency === 'outra') return rd.freqOther || 'Outra';
+  return rd.frequency.charAt(0).toUpperCase() + rd.frequency.slice(1);
+}
+
+function refreshDots(row, key) {
+  var rd = state.riskData[key] || {};
   row.classList.toggle('active', !!rd.checked);
   row.classList.toggle('has-freq', !!rd.frequency);
-  row.classList.toggle('has-photo', !!rd.photo);
-  row.classList.toggle('has-notes', !!rd.notes);
   row.classList.toggle('complete', !!(rd.checked && rd.desc));
-
-  const badge = row.querySelector('.badge-freq');
-  if (badge) badge.textContent = rd.frequency === 'outra' ? (rd.freqOther || 'Outra') : (rd.frequency || '');
+  var badge = row.querySelector('.badge-freq');
+  if (badge) badge.textContent = formatFreq(rd);
 }
 
 // ========================================================
-// RENDER: EPI
+// RENDER: EPI (using div instead of label)
 // ========================================================
 function renderEpis() {
-  const container = document.getElementById('epiContainer');
+  var container = document.getElementById('epiContainer');
   container.innerHTML = '';
 
-  EPIS.forEach((name, idx) => {
-    const ed = state.epiData[idx] || {};
+  EPIS.forEach(function(name, idx) {
+    var ed = state.epiData[idx] || {};
 
-    const item = document.createElement('label');
+    var item = document.createElement('div');
     item.className = 'epi-item';
     if (ed.checked) item.classList.add('checked');
     if (ed.photo) item.classList.add('has-photo');
 
-    const cb = document.createElement('input');
+    var cb = document.createElement('input');
     cb.type = 'checkbox';
+    cb.className = 'epi-cb';
     cb.checked = !!ed.checked;
-    cb.addEventListener('change', () => {
-      if (!state.epiData[idx]) state.epiData[idx] = {};
-      state.epiData[idx].checked = cb.checked;
-      item.classList.toggle('checked', cb.checked);
-    });
 
-    const span = document.createElement('span');
+    cb.addEventListener('change', (function(i, it) {
+      return function() {
+        if (!state.epiData[i]) state.epiData[i] = {};
+        state.epiData[i].checked = this.checked;
+        it.classList.toggle('checked', this.checked);
+      };
+    })(idx, item));
+
+    var span = document.createElement('span');
+    span.className = 'epi-item-name';
     span.textContent = name;
 
-    const photoBtn = document.createElement('button');
-    photoBtn.className = 'epi-photo-btn';
+    var photoBtn = document.createElement('button');
     photoBtn.type = 'button';
+    photoBtn.className = 'epi-photo-btn';
     photoBtn.textContent = '📷';
-    photoBtn.title = 'Foto do C.A.';
-    photoBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      openEpiModal(idx, name);
-    });
 
-    const dot = document.createElement('span');
+    photoBtn.addEventListener('click', (function(i, n) {
+      return function(e) { e.stopPropagation(); openEpiModal(i, n); };
+    })(idx, name));
+
+    var dot = document.createElement('span');
     dot.className = 'dot-done-epi';
 
-    item.append(cb, span, photoBtn, dot);
+    item.appendChild(cb);
+    item.appendChild(span);
+    item.appendChild(photoBtn);
+    item.appendChild(dot);
     container.appendChild(item);
   });
 }
@@ -331,49 +355,56 @@ function renderEpis() {
 // RENDER: TRAININGS
 // ========================================================
 function renderTrainings() {
-  const container = document.getElementById('trainingContainer');
+  var container = document.getElementById('trainingContainer');
   container.innerHTML = '';
 
-  const allTrainings = [...TRAININGS, ...state.customTrainings.map(t => t.name)];
+  var all = TRAININGS.slice();
+  state.customTrainings.forEach(function(t) { all.push(t.name); });
 
-  allTrainings.forEach((name, idx) => {
-    const isCustom = idx >= TRAININGS.length;
-    const isChecked = isCustom
-      ? state.customTrainings[idx - TRAININGS.length]?.checked
+  all.forEach(function(name, idx) {
+    var isCustom = idx >= TRAININGS.length;
+    var isChecked = isCustom
+      ? (state.customTrainings[idx - TRAININGS.length] || {}).checked
       : state.trainingData[idx];
 
-    const item = document.createElement('label');
+    var item = document.createElement('div');
     item.className = 'training-item' + (isCustom ? ' custom' : '');
     if (isChecked) item.classList.add('checked');
 
-    const cb = document.createElement('input');
+    var cb = document.createElement('input');
     cb.type = 'checkbox';
+    cb.className = 'training-cb';
     cb.checked = !!isChecked;
-    cb.addEventListener('change', () => {
-      if (isCustom) {
-        state.customTrainings[idx - TRAININGS.length].checked = cb.checked;
-      } else {
-        state.trainingData[idx] = cb.checked;
-      }
-      item.classList.toggle('checked', cb.checked);
-    });
 
-    const span = document.createElement('span');
+    cb.addEventListener('change', (function(i, ic, it) {
+      return function() {
+        if (ic) {
+          state.customTrainings[i - TRAININGS.length].checked = this.checked;
+        } else {
+          state.trainingData[i] = this.checked;
+        }
+        it.classList.toggle('checked', this.checked);
+      };
+    })(idx, isCustom, item));
+
+    var span = document.createElement('span');
     span.textContent = name;
 
-    item.append(cb, span);
+    item.appendChild(cb);
+    item.appendChild(span);
 
     if (isCustom) {
-      const removeBtn = document.createElement('button');
-      removeBtn.className = 'remove-training';
+      var removeBtn = document.createElement('button');
       removeBtn.type = 'button';
+      removeBtn.className = 'remove-training';
       removeBtn.textContent = '✕';
-      removeBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        state.customTrainings.splice(idx - TRAININGS.length, 1);
-        renderTrainings();
-      });
+      removeBtn.addEventListener('click', (function(i) {
+        return function(e) {
+          e.stopPropagation();
+          state.customTrainings.splice(i - TRAININGS.length, 1);
+          renderTrainings();
+        };
+      })(idx));
       item.appendChild(removeBtn);
     }
 
@@ -382,47 +413,54 @@ function renderTrainings() {
 }
 
 // ========================================================
-// RENDER: PERICULOSIDADE / APOSENTADORIA
+// RENDER: SELECTABLE GRID
 // ========================================================
 function renderSelectableGrid(containerId, items, dataObj) {
-  const container = document.getElementById(containerId);
+  var container = document.getElementById(containerId);
   container.innerHTML = '';
 
-  items.forEach((name, idx) => {
-    const d = dataObj[idx] || {};
+  items.forEach(function(name, idx) {
+    var d = dataObj[idx] || {};
 
-    const item = document.createElement('div');
+    var item = document.createElement('div');
     item.className = 'selectable-item';
     if (d.checked) item.classList.add('active');
     if (d.checked && (d.notes || d.photo)) item.classList.add('complete');
 
-    const cb = document.createElement('input');
+    var cb = document.createElement('input');
     cb.type = 'checkbox';
+    cb.className = 'selectable-cb';
     cb.checked = !!d.checked;
-    cb.addEventListener('change', () => {
-      dataObj[idx] = dataObj[idx] || {};
-      dataObj[idx].checked = cb.checked;
-      item.classList.toggle('active', cb.checked);
-      if (cb.checked) {
-        openSelectableModal(containerId, idx, name, dataObj);
-      }
-    });
 
-    const span = document.createElement('span');
+    cb.addEventListener('change', (function(cid, i, n, obj, it) {
+      return function() {
+        obj[i] = obj[i] || {};
+        obj[i].checked = this.checked;
+        it.classList.toggle('active', this.checked);
+        if (this.checked) openSelectableModal(cid, i, n, obj);
+      };
+    })(containerId, idx, name, dataObj, item));
+
+    var span = document.createElement('span');
+    span.className = 'selectable-item-name';
     span.textContent = name;
 
-    const dot = document.createElement('span');
+    var dot = document.createElement('span');
     dot.className = 'dot-done';
 
-    const btn = document.createElement('button');
-    btn.className = 'expand-btn';
+    var btn = document.createElement('button');
     btn.type = 'button';
+    btn.className = 'expand-btn';
     btn.textContent = '✏️';
-    btn.addEventListener('click', () => {
-      openSelectableModal(containerId, idx, name, dataObj);
-    });
 
-    item.append(cb, span, dot, btn);
+    btn.addEventListener('click', (function(cid, i, n, obj) {
+      return function(e) { e.stopPropagation(); openSelectableModal(cid, i, n, obj); };
+    })(containerId, idx, name, dataObj));
+
+    item.appendChild(cb);
+    item.appendChild(span);
+    item.appendChild(dot);
+    item.appendChild(btn);
     container.appendChild(item);
   });
 }
@@ -430,120 +468,126 @@ function renderSelectableGrid(containerId, items, dataObj) {
 // ========================================================
 // MODALS
 // ========================================================
-let currentModalTarget = null;
+var currentModalTarget = null;
+
+function openModal() {
+  document.getElementById('modal').style.display = 'flex';
+  document.body.classList.add('modal-open');
+}
+
+function closeModal() {
+  document.getElementById('modal').style.display = 'none';
+  document.body.classList.remove('modal-open');
+  currentModalTarget = null;
+}
 
 function openRiskModal(key, title) {
-  currentModalTarget = { type: 'risk', key };
-  const rd = state.riskData[key] || {};
+  currentModalTarget = { type: 'risk', key: key };
+  var rd = state.riskData[key] || {};
 
   document.getElementById('modalTitle').textContent = title;
   document.getElementById('modalDesc').value = rd.desc || '';
   document.getElementById('modalNotes').value = rd.notes || '';
   document.getElementById('modalFrequency').value = rd.frequency || '';
   document.getElementById('modalFreqOther').value = rd.freqOther || '';
-  document.getElementById('modalFreqOther').style.display = rd.frequency === 'outra' ? '' : 'none';
-
-  const preview = document.getElementById('modalPhotoPreview');
-  preview.innerHTML = rd.photo ? `<img src="${rd.photo}">` : '';
+  document.getElementById('modalFreqOther').style.display = rd.frequency === 'outra' ? 'block' : 'none';
+  document.getElementById('modalPhotoPreview').innerHTML = rd.photo ? '<img src="' + rd.photo + '">' : '';
   document.getElementById('modalPhoto').value = '';
-
-  document.getElementById('modal').style.display = 'flex';
+  openModal();
 }
 
 function openSelectableModal(containerId, idx, title, dataObj) {
-  currentModalTarget = { type: 'selectable', containerId, idx, dataObj };
-  const d = dataObj[idx] || {};
+  currentModalTarget = { type: 'selectable', containerId: containerId, idx: idx, dataObj: dataObj };
+  var d = dataObj[idx] || {};
 
   document.getElementById('modalTitle').textContent = title;
   document.getElementById('modalDesc').value = d.desc || '';
   document.getElementById('modalNotes').value = d.notes || '';
   document.getElementById('modalFrequency').value = d.frequency || '';
   document.getElementById('modalFreqOther').value = d.freqOther || '';
-  document.getElementById('modalFreqOther').style.display = d.frequency === 'outra' ? '' : 'none';
-
-  const preview = document.getElementById('modalPhotoPreview');
-  preview.innerHTML = d.photo ? `<img src="${d.photo}">` : '';
+  document.getElementById('modalFreqOther').style.display = d.frequency === 'outra' ? 'block' : 'none';
+  document.getElementById('modalPhotoPreview').innerHTML = d.photo ? '<img src="' + d.photo + '">' : '';
   document.getElementById('modalPhoto').value = '';
-
-  document.getElementById('modal').style.display = 'flex';
-}
-
-function closeModal() {
-  document.getElementById('modal').style.display = 'none';
-  currentModalTarget = null;
+  openModal();
 }
 
 function saveModal() {
   if (!currentModalTarget) return;
 
-  const desc = document.getElementById('modalDesc').value;
-  const notes = document.getElementById('modalNotes').value;
-  const frequency = document.getElementById('modalFrequency').value;
-  const freqOther = document.getElementById('modalFreqOther').value;
+  var desc = document.getElementById('modalDesc').value;
+  var notes = document.getElementById('modalNotes').value;
+  var frequency = document.getElementById('modalFrequency').value;
+  var freqOther = document.getElementById('modalFreqOther').value;
 
-  let photo = null;
-  const previewImg = document.querySelector('#modalPhotoPreview img');
-  if (previewImg) photo = previewImg.src;
+  var photo = null;
+  var img = document.querySelector('#modalPhotoPreview img');
+  if (img) photo = img.src;
 
   if (currentModalTarget.type === 'risk') {
-    const key = currentModalTarget.key;
-    state.riskData[key] = { ...state.riskData[key], desc, notes, frequency, freqOther, checked: true };
+    var key = currentModalTarget.key;
+    state.riskData[key] = Object.assign({}, state.riskData[key], {
+      desc: desc, notes: notes, frequency: frequency, freqOther: freqOther, checked: true
+    });
     if (photo) state.riskData[key].photo = photo;
 
-    const row = document.querySelector(`.risk-item[data-key="${key}"]`);
+    var row = document.querySelector('.risk-item[data-key="' + key + '"]');
     if (row) {
-      row.querySelector('input[type="checkbox"]').checked = true;
-      updateDots(row, key);
+      row.querySelector('.risk-cb').checked = true;
+      refreshDots(row, key);
     }
   } else if (currentModalTarget.type === 'selectable') {
-    const { idx, dataObj, containerId } = currentModalTarget;
-    dataObj[idx] = { ...dataObj[idx], desc, notes, frequency, freqOther, checked: true };
-    if (photo) dataObj[idx].photo = photo;
+    var obj = currentModalTarget.dataObj;
+    var i = currentModalTarget.idx;
+    obj[i] = Object.assign({}, obj[i], {
+      desc: desc, notes: notes, frequency: frequency, freqOther: freqOther, checked: true
+    });
+    if (photo) obj[i].photo = photo;
 
-    const items = containerId === 'periculosidadeContainer' ? PERICULOSIDADE : APOSENTADORIA;
-    renderSelectableGrid(containerId, items, dataObj);
+    var items = currentModalTarget.containerId === 'periculosidadeContainer' ? PERICULOSIDADE : APOSENTADORIA;
+    renderSelectableGrid(currentModalTarget.containerId, items, obj);
   }
 
   closeModal();
 }
 
 // EPI Modal
-let currentEpiIdx = null;
+var currentEpiIdx = null;
 
 function openEpiModal(idx, name) {
   currentEpiIdx = idx;
-  document.getElementById('modalEpiTitle').textContent = name + ' - Foto do C.A.';
-  const ed = state.epiData[idx] || {};
-  const preview = document.getElementById('modalEpiPhotoPreview');
-  preview.innerHTML = ed.photo ? `<img src="${ed.photo}">` : '';
+  document.getElementById('modalEpiTitle').textContent = name + ' - Foto C.A.';
+  var ed = state.epiData[idx] || {};
+  document.getElementById('modalEpiPhotoPreview').innerHTML = ed.photo ? '<img src="' + ed.photo + '">' : '';
   document.getElementById('modalEpiPhoto').value = '';
   document.getElementById('modalEpi').style.display = 'flex';
+  document.body.classList.add('modal-open');
 }
 
 function closeEpiModal() {
   document.getElementById('modalEpi').style.display = 'none';
+  document.body.classList.remove('modal-open');
   currentEpiIdx = null;
 }
 
 function saveEpiModal() {
   if (currentEpiIdx === null) return;
-  const previewImg = document.querySelector('#modalEpiPhotoPreview img');
-  if (previewImg) {
+  var img = document.querySelector('#modalEpiPhotoPreview img');
+  if (img) {
     if (!state.epiData[currentEpiIdx]) state.epiData[currentEpiIdx] = {};
-    state.epiData[currentEpiIdx].photo = previewImg.src;
+    state.epiData[currentEpiIdx].photo = img.src;
   }
   renderEpis();
   closeEpiModal();
 }
 
-// Photo file handler
-function handlePhotoInput(inputId, previewId) {
+// Photo handler
+function setupPhotoInput(inputId, previewId) {
   document.getElementById(inputId).addEventListener('change', function() {
-    const file = this.files[0];
+    var file = this.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      document.getElementById(previewId).innerHTML = `<img src="${e.target.result}">`;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      document.getElementById(previewId).innerHTML = '<img src="' + e.target.result + '">';
     };
     reader.readAsDataURL(file);
   });
@@ -551,18 +595,18 @@ function handlePhotoInput(inputId, previewId) {
 
 // Frequency toggle
 document.getElementById('modalFrequency').addEventListener('change', function() {
-  document.getElementById('modalFreqOther').style.display = this.value === 'outra' ? '' : 'none';
+  document.getElementById('modalFreqOther').style.display = this.value === 'outra' ? 'block' : 'none';
 });
 
 // ========================================================
 // COMPANY / SECTOR / ROLE
 // ========================================================
 function renderCompanySelect() {
-  const sel = document.getElementById('companySelect');
-  const companies = loadCompanies();
+  var sel = document.getElementById('companySelect');
+  var companies = loadCompanies();
   sel.innerHTML = '<option value="">-- Selecione a empresa --</option>';
-  companies.forEach(c => {
-    const opt = document.createElement('option');
+  companies.forEach(function(c) {
+    var opt = document.createElement('option');
     opt.value = c.name;
     opt.textContent = c.name;
     sel.appendChild(opt);
@@ -570,82 +614,88 @@ function renderCompanySelect() {
 }
 
 function renderSectors() {
-  const sel = document.getElementById('setorSelect');
+  var sel = document.getElementById('setorSelect');
   sel.innerHTML = '<option value="">-- Selecione --</option>';
-  const companies = loadCompanies();
-  const comp = companies.find(c => c.name === state.currentCompany);
+  var companies = loadCompanies();
+  var comp = companies.find(function(c) { return c.name === state.currentCompany; });
   if (!comp) return;
 
-  const sectors = [...new Set(comp.sectors.map(s => s.name))];
-  sectors.forEach(s => {
-    const opt = document.createElement('option');
-    opt.value = s;
-    opt.textContent = s;
+  var seen = {};
+  comp.sectors.forEach(function(s) {
+    if (seen[s.name]) return;
+    seen[s.name] = true;
+    var opt = document.createElement('option');
+    opt.value = s.name;
+    opt.textContent = s.name;
     sel.appendChild(opt);
   });
 }
 
 function renderRoles(setor) {
-  const sel = document.getElementById('cargoSelect');
+  var sel = document.getElementById('cargoSelect');
   sel.innerHTML = '<option value="">-- Selecione --</option>';
   sel.disabled = !setor;
   if (!setor) return;
 
-  const companies = loadCompanies();
-  const comp = companies.find(c => c.name === state.currentCompany);
+  var companies = loadCompanies();
+  var comp = companies.find(function(c) { return c.name === state.currentCompany; });
   if (!comp) return;
 
-  const roles = comp.sectors.filter(s => s.name === setor).flatMap(s => s.roles);
-  const unique = [...new Set(roles)];
-  unique.forEach(r => {
-    const opt = document.createElement('option');
-    opt.value = r;
-    opt.textContent = r;
-    sel.appendChild(opt);
+  var seen = {};
+  comp.sectors.forEach(function(s) {
+    if (s.name !== setor) return;
+    s.roles.forEach(function(r) {
+      if (seen[r]) return;
+      seen[r] = true;
+      var opt = document.createElement('option');
+      opt.value = r;
+      opt.textContent = r;
+      sel.appendChild(opt);
+    });
   });
 }
 
 // ========================================================
-// IMPORT XLSX/CSV
+// IMPORT
 // ========================================================
 document.getElementById('importFile').addEventListener('change', function() {
-  const file = this.files[0];
+  var file = this.files[0];
   if (!file) return;
 
-  const companyName = document.getElementById('companySelect').value || document.getElementById('newCompanyName').value;
+  var companyName = document.getElementById('companySelect').value || document.getElementById('newCompanyName').value;
   if (!companyName) {
-    notify('Selecione ou crie uma empresa antes de importar.', '#e74c3c');
+    notify('Selecione ou crie uma empresa primeiro.', '#e74c3c');
     this.value = '';
     return;
   }
 
-  const reader = new FileReader();
-  reader.onload = (e) => {
+  var reader = new FileReader();
+  reader.onload = function(e) {
     try {
-      const wb = XLSX.read(e.target.result, { type: 'array' });
-      const sheet = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+      var wb = XLSX.read(e.target.result, { type: 'array' });
+      var sheet = wb.Sheets[wb.SheetNames[0]];
+      var rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-      const companies = loadCompanies();
-      let comp = companies.find(c => c.name === companyName);
+      var companies = loadCompanies();
+      var comp = companies.find(function(c) { return c.name === companyName; });
       if (!comp) {
         comp = { name: companyName, sectors: [] };
         companies.push(comp);
       }
 
-      let imported = 0;
-      rows.forEach((row, i) => {
+      var imported = 0;
+      rows.forEach(function(row, i) {
         if (i === 0) return;
-        const setor = (row[0] || '').toString().trim();
-        const cargo = (row[1] || '').toString().trim();
+        var setor = (row[0] || '').toString().trim();
+        var cargo = (row[1] || '').toString().trim();
         if (!setor) return;
 
-        let sec = comp.sectors.find(s => s.name === setor);
+        var sec = comp.sectors.find(function(s) { return s.name === setor; });
         if (!sec) {
           sec = { name: setor, roles: [] };
           comp.sectors.push(sec);
         }
-        if (cargo && !sec.roles.includes(cargo)) {
+        if (cargo && sec.roles.indexOf(cargo) === -1) {
           sec.roles.push(cargo);
         }
         imported++;
@@ -656,9 +706,9 @@ document.getElementById('importFile').addEventListener('change', function() {
       document.getElementById('companySelect').value = companyName;
       document.getElementById('btnEnterChecklist').disabled = false;
       state.currentCompany = companyName;
-      notify(`Importados ${imported} registros de setores/cargos.`, '#27ae60');
+      notify('Importados ' + imported + ' registros.', '#27ae60');
     } catch (err) {
-      notify('Erro ao ler planilha: ' + err.message, '#e74c3c');
+      notify('Erro na planilha: ' + err.message, '#e74c3c');
     }
   };
   reader.readAsArrayBuffer(file);
@@ -669,101 +719,115 @@ document.getElementById('importFile').addEventListener('change', function() {
 // DUPLICATE CHECK
 // ========================================================
 function checkDuplicate() {
-  const setor = document.getElementById('setorSelect').value;
-  const cargo = document.getElementById('cargoSelect').value;
-  const func = document.getElementById('funcionario').value.trim();
-  if (!func || !setor) return;
+  var setor = document.getElementById('setorSelect').value;
+  var cargo = document.getElementById('cargoSelect').value;
+  var func = document.getElementById('funcionario').value.trim();
+  if (!func || !setor || !state.currentCompany) return;
 
-  const key = checklistKey(state.currentCompany, setor, cargo || '_');
-  const existing = localStorage.getItem(key);
+  var key = clKey(state.currentCompany, setor, cargo);
+  var existing = localStorage.getItem(key);
   if (existing) {
-    const data = JSON.parse(existing);
-    if (data.formFields && data.formFields.funcionario &&
-        data.formFields.funcionario.toLowerCase() === func.toLowerCase()) {
-      document.getElementById('duplicateAlert').style.display = 'flex';
-    }
+    try {
+      var data = JSON.parse(existing);
+      if (data.formFields && data.formFields.funcionario &&
+          data.formFields.funcionario.toLowerCase() === func.toLowerCase()) {
+        document.getElementById('duplicateAlert').style.display = 'flex';
+      }
+    } catch(e) {}
   }
 }
 
 // ========================================================
 // SIGNATURE
 // ========================================================
-const canvas = document.getElementById('signatureCanvas');
-const ctx = canvas.getContext('2d');
-let isDrawing = false;
+var canvas = document.getElementById('signatureCanvas');
+var ctx = canvas.getContext('2d');
+var isDrawing = false;
 
 function resizeCanvas() {
-  const parent = canvas.parentElement;
+  if (!document.getElementById('screenChecklist').classList.contains('active')) return;
+  var parent = canvas.parentElement;
   if (!parent) return;
-  const w = Math.min(600, parent.getBoundingClientRect().width - 20);
+  var w = Math.min(600, parent.getBoundingClientRect().width - 20);
+  if (w < 100) w = 280;
   canvas.width = w;
   canvas.height = 150;
 }
 
 function getPos(e) {
-  const rect = canvas.getBoundingClientRect();
-  const t = e.touches ? e.touches[0] : e;
+  var rect = canvas.getBoundingClientRect();
+  var t = e.touches ? e.touches[0] : e;
   return { x: t.clientX - rect.left, y: t.clientY - rect.top };
 }
 
-canvas.addEventListener('mousedown', e => { isDrawing = true; ctx.beginPath(); ctx.moveTo(getPos(e).x, getPos(e).y); });
-canvas.addEventListener('mousemove', e => { if (!isDrawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.strokeStyle = '#1a1a2e'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.stroke(); });
-canvas.addEventListener('mouseup', () => isDrawing = false);
-canvas.addEventListener('mouseleave', () => isDrawing = false);
-canvas.addEventListener('touchstart', e => { e.preventDefault(); isDrawing = true; ctx.beginPath(); ctx.moveTo(getPos(e).x, getPos(e).y); });
-canvas.addEventListener('touchmove', e => { e.preventDefault(); if (!isDrawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.strokeStyle = '#1a1a2e'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.stroke(); });
-canvas.addEventListener('touchend', () => isDrawing = false);
+function startDraw(e) {
+  isDrawing = true;
+  var p = getPos(e);
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y);
+}
 
-document.getElementById('clearSignature').addEventListener('click', () => ctx.clearRect(0, 0, canvas.width, canvas.height));
+function moveDraw(e) {
+  if (!isDrawing) return;
+  var p = getPos(e);
+  ctx.lineTo(p.x, p.y);
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+}
+
+function endDraw() { isDrawing = false; }
+
+canvas.addEventListener('mousedown', startDraw);
+canvas.addEventListener('mousemove', moveDraw);
+canvas.addEventListener('mouseup', endDraw);
+canvas.addEventListener('mouseleave', endDraw);
+canvas.addEventListener('touchstart', function(e) { e.preventDefault(); startDraw(e); }, { passive: false });
+canvas.addEventListener('touchmove', function(e) { e.preventDefault(); moveDraw(e); }, { passive: false });
+canvas.addEventListener('touchend', endDraw);
+
+document.getElementById('clearSignature').addEventListener('click', function() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+});
 
 function getSignatureData() { return canvas.toDataURL(); }
 
 function loadSignature(data) {
   if (!data) return;
-  const img = new Image();
-  img.onload = () => ctx.drawImage(img, 0, 0);
+  var img = new Image();
+  img.onload = function() { ctx.drawImage(img, 0, 0); };
   img.src = data;
 }
 
 // ========================================================
-// INIT & EVENTS
+// EVENTS
 // ========================================================
-function init() {
-  renderCompanySelect();
-  renderRisks();
-  renderEpis();
-  renderTrainings();
-  renderSelectableGrid('periculosidadeContainer', PERICULOSIDADE, state.periculosidadeData);
-  renderSelectableGrid('aposentadoriaContainer', APOSENTADORIA, state.aposentadoriaData);
-  handlePhotoInput('modalPhoto', 'modalPhotoPreview');
-  handlePhotoInput('modalEpiPhoto', 'modalEpiPhotoPreview');
-  resizeCanvas();
-}
 
-// Company screen
+// Company
 document.getElementById('companySelect').addEventListener('change', function() {
   state.currentCompany = this.value;
   document.getElementById('btnEnterChecklist').disabled = !this.value;
 });
 
-document.getElementById('btnNewCompany').addEventListener('click', () => {
+document.getElementById('btnNewCompany').addEventListener('click', function() {
   document.getElementById('newCompanyForm').style.display = 'flex';
 });
 
-document.getElementById('btnCancelCompany').addEventListener('click', () => {
+document.getElementById('btnCancelCompany').addEventListener('click', function() {
   document.getElementById('newCompanyForm').style.display = 'none';
   document.getElementById('newCompanyName').value = '';
 });
 
-document.getElementById('btnSaveCompany').addEventListener('click', () => {
-  const name = document.getElementById('newCompanyName').value.trim();
+document.getElementById('btnSaveCompany').addEventListener('click', function() {
+  var name = document.getElementById('newCompanyName').value.trim();
   if (!name) return;
-  const companies = loadCompanies();
-  if (companies.find(c => c.name === name)) {
+  var companies = loadCompanies();
+  if (companies.find(function(c) { return c.name === name; })) {
     notify('Empresa já existe!', '#e74c3c');
     return;
   }
-  companies.push({ name, sectors: [] });
+  companies.push({ name: name, sectors: [] });
   saveCompanies(companies);
   renderCompanySelect();
   document.getElementById('companySelect').value = name;
@@ -774,15 +838,15 @@ document.getElementById('btnSaveCompany').addEventListener('click', () => {
   notify('Empresa criada!');
 });
 
-document.getElementById('btnEnterChecklist').addEventListener('click', () => {
+document.getElementById('btnEnterChecklist').addEventListener('click', function() {
   document.getElementById('screenCompany').classList.remove('active');
   document.getElementById('screenChecklist').classList.add('active');
   document.getElementById('headerCompany').textContent = state.currentCompany;
   renderSectors();
-  resizeCanvas();
+  setTimeout(resizeCanvas, 100);
 });
 
-document.getElementById('btnBack').addEventListener('click', () => {
+document.getElementById('btnBack').addEventListener('click', function() {
   document.getElementById('screenChecklist').classList.remove('active');
   document.getElementById('screenCompany').classList.add('active');
 });
@@ -792,52 +856,52 @@ document.getElementById('setorSelect').addEventListener('change', function() {
   renderRoles(this.value);
 });
 
-// Duplicate check on funcionario blur
+// Duplicate
 document.getElementById('funcionario').addEventListener('blur', checkDuplicate);
 
-document.getElementById('btnOverwrite').addEventListener('click', () => {
+document.getElementById('btnOverwrite').addEventListener('click', function() {
   document.getElementById('duplicateAlert').style.display = 'none';
 });
 
-document.getElementById('btnDismissAlert').addEventListener('click', () => {
+document.getElementById('btnDismissAlert').addEventListener('click', function() {
   document.getElementById('duplicateAlert').style.display = 'none';
   document.getElementById('funcionario').value = '';
 });
 
-// Modal events
+// Modals
 document.getElementById('modalClose').addEventListener('click', closeModal);
 document.getElementById('modalSave').addEventListener('click', saveModal);
-document.getElementById('modal').addEventListener('click', (e) => {
-  if (e.target === document.getElementById('modal')) closeModal();
+document.getElementById('modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
 });
 
 document.getElementById('modalEpiClose').addEventListener('click', closeEpiModal);
 document.getElementById('modalEpiSave').addEventListener('click', saveEpiModal);
-document.getElementById('modalEpi').addEventListener('click', (e) => {
-  if (e.target === document.getElementById('modalEpi')) closeEpiModal();
+document.getElementById('modalEpi').addEventListener('click', function(e) {
+  if (e.target === this) closeEpiModal();
 });
 
-// Add training
-document.getElementById('btnAddTraining').addEventListener('click', () => {
-  const input = document.getElementById('newTraining');
-  const name = input.value.trim();
+// Training
+document.getElementById('btnAddTraining').addEventListener('click', function() {
+  var input = document.getElementById('newTraining');
+  var name = input.value.trim();
   if (!name) return;
-  state.customTrainings.push({ name, checked: true });
+  state.customTrainings.push({ name: name, checked: true });
   input.value = '';
   renderTrainings();
 });
 
 // Save
-document.getElementById('btnSave').addEventListener('click', () => {
+document.getElementById('btnSave').addEventListener('click', function() {
   saveChecklist();
-  notify('Checklist salvo com sucesso!');
+  notify('Checklist salvo!');
 });
 
 // Print
-document.getElementById('btnPrint').addEventListener('click', () => window.print());
+document.getElementById('btnPrint').addEventListener('click', function() { window.print(); });
 
 // Clear
-document.getElementById('btnClear').addEventListener('click', () => {
+document.getElementById('btnClear').addEventListener('click', function() {
   if (!confirm('Limpar todo o formulário?')) return;
   state.riskData = {};
   state.epiData = {};
@@ -846,22 +910,19 @@ document.getElementById('btnClear').addEventListener('click', () => {
   state.periculosidadeData = {};
   state.aposentadoriaData = {};
 
-  document.querySelectorAll('#screenChecklist input[type="text"], #screenChecklist input[type="date"], #screenChecklist textarea').forEach(el => el.value = '');
-  document.querySelectorAll('#screenChecklist input[type="radio"]').forEach(el => el.checked = false);
+  document.querySelectorAll('#screenChecklist input[type="text"], #screenChecklist input[type="date"], #screenChecklist textarea').forEach(function(el) { el.value = ''; });
+  document.querySelectorAll('#screenChecklist input[type="radio"]').forEach(function(el) { el.checked = false; });
+  updateRadioStyles();
   document.getElementById('responsavelSelect').value = '';
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  renderRisks();
-  renderEpis();
-  renderTrainings();
-  renderSelectableGrid('periculosidadeContainer', PERICULOSIDADE, state.periculosidadeData);
-  renderSelectableGrid('aposentadoriaContainer', APOSENTADORIA, state.aposentadoriaData);
+  renderAll();
   notify('Formulário limpo!');
 });
 
-// Load checklist when cargo changes
+// Load on cargo change
 document.getElementById('cargoSelect').addEventListener('change', function() {
-  const saved = loadChecklist();
+  var saved = loadChecklist();
   if (saved) {
     state.riskData = saved.riskData || {};
     state.epiData = saved.epiData || {};
@@ -873,31 +934,39 @@ document.getElementById('cargoSelect').addEventListener('change', function() {
     restoreFormFields(saved.formFields);
     document.getElementById('responsavelSelect').value = saved.responsavel || '';
     loadSignature(saved.signature);
-
-    renderRisks();
-    renderEpis();
-    renderTrainings();
-    renderSelectableGrid('periculosidadeContainer', PERICULOSIDADE, state.periculosidadeData);
-    renderSelectableGrid('aposentadoriaContainer', APOSENTADORIA, state.aposentadoriaData);
+    renderAll();
   }
 });
 
-// Notification
-function notify(msg, color = '#27ae60') {
-  const el = document.createElement('div');
+// ========================================================
+// INIT
+// ========================================================
+function renderAll() {
+  renderRisks();
+  renderEpis();
+  renderTrainings();
+  renderSelectableGrid('periculosidadeContainer', PERICULOSIDADE, state.periculosidadeData);
+  renderSelectableGrid('aposentadoriaContainer', APOSENTADORIA, state.aposentadoriaData);
+}
+
+function notify(msg, color) {
+  var el = document.createElement('div');
   el.className = 'notification';
   el.textContent = msg;
-  el.style.background = color;
+  el.style.background = color || '#27ae60';
   document.body.appendChild(el);
-  setTimeout(() => {
+  setTimeout(function() {
     el.style.opacity = '0';
     el.style.transition = 'opacity 0.3s';
-    setTimeout(() => el.remove(), 300);
+    setTimeout(function() { el.remove(); }, 300);
   }, 2500);
 }
 
-// Resize
 window.addEventListener('resize', resizeCanvas);
 
-// Start
-init();
+// Setup
+renderCompanySelect();
+renderAll();
+setupPhotoInput('modalPhoto', 'modalPhotoPreview');
+setupPhotoInput('modalEpiPhoto', 'modalEpiPhotoPreview');
+resizeCanvas();

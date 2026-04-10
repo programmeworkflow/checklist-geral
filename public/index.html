@@ -2,14 +2,15 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <title>Checklist GERAL - MedWork</title>
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- TELA INICIAL: Seleção de empresa -->
+  <!-- TELA INICIAL -->
   <div id="screenCompany" class="screen active">
     <div class="company-container">
       <img src="images/logo-colorida.png" alt="MedWork" class="company-logo">
@@ -29,34 +30,33 @@
         <button id="btnCancelCompany" class="btn btn-sm btn-secondary">Cancelar</button>
       </div>
 
-      <button id="btnEnterChecklist" class="btn btn-primary btn-lg" disabled>Entrar</button>
+      <button id="btnEnterChecklist" class="btn btn-primary btn-lg btn-full" disabled>Entrar</button>
 
-      <!-- Import -->
       <div class="import-section">
         <h3>Importar Setores e Cargos</h3>
-        <p class="hint">Planilha com colunas: <strong>Setor</strong> | <strong>Cargo</strong></p>
+        <p class="hint" style="font-size:0.78rem;color:#888;">Planilha com colunas: <strong>Setor</strong> | <strong>Cargo</strong></p>
         <input type="file" id="importFile" accept=".xlsx,.xls,.csv">
       </div>
     </div>
   </div>
 
-  <!-- TELA PRINCIPAL: Checklist -->
+  <!-- TELA PRINCIPAL -->
   <div id="screenChecklist" class="screen">
     <header class="header">
       <img src="images/logo-branco.png" alt="MedWork" class="header-logo">
       <div class="header-text">
-        <h1>Entrevista de Percepção de Riscos Ocupacionais</h1>
+        <h1>Percepção de Riscos Ocupacionais</h1>
         <p class="subtitle" id="headerCompany"></p>
       </div>
-      <button id="btnBack" class="btn btn-sm btn-back" title="Voltar">Voltar</button>
+      <button id="btnBack" class="btn btn-sm btn-back">Voltar</button>
     </header>
 
     <div class="container">
       <!-- DUPLICATE ALERT -->
       <div id="duplicateAlert" class="alert alert-warning" style="display:none;">
-        Atenção: Já existe um checklist salvo para este funcionário neste setor. Deseja sobrescrever?
-        <button id="btnOverwrite" class="btn btn-sm btn-danger">Sobrescrever</button>
-        <button id="btnDismissAlert" class="btn btn-sm btn-secondary">Cancelar</button>
+        <span>Checklist já existe para este funcionário/setor. Sobrescrever?</span>
+        <button id="btnOverwrite" class="btn btn-sm btn-danger">Sim</button>
+        <button id="btnDismissAlert" class="btn btn-sm btn-secondary">Não</button>
       </div>
 
       <!-- INFO GERAL -->
@@ -68,7 +68,7 @@
             <input type="date" id="dataVisita">
           </div>
           <div class="form-group col-6">
-            <label>Data de venc. dos extintores</label>
+            <label>Venc. extintores</label>
             <input type="date" id="dataVencExtintores">
           </div>
           <div class="form-group col-6">
@@ -80,7 +80,7 @@
           <div class="form-group col-6">
             <label>Cargo / Função</label>
             <select id="cargoSelect" disabled>
-              <option value="">-- Selecione o setor primeiro --</option>
+              <option value="">-- Setor primeiro --</option>
             </select>
           </div>
           <div class="form-group col-12">
@@ -89,13 +89,13 @@
           </div>
           <div class="form-group col-12">
             <label>Recebe adicional</label>
-            <div class="radio-group">
-              <label class="radio-label"><input type="radio" name="adicional" value="nao"> Não recebe</label>
-              <label class="radio-label"><input type="radio" name="adicional" value="10"> 10%</label>
-              <label class="radio-label"><input type="radio" name="adicional" value="20"> 20%</label>
-              <label class="radio-label"><input type="radio" name="adicional" value="30"> 30%</label>
-              <label class="radio-label"><input type="radio" name="adicional" value="40"> 40%</label>
-              <label class="radio-label"><input type="radio" name="adicional" value="noturno"> Noturno</label>
+            <div class="radio-group" id="adicionalGroup">
+              <span class="radio-label" data-value="nao"><input type="radio" name="adicional" value="nao"> Não recebe</span>
+              <span class="radio-label" data-value="10"><input type="radio" name="adicional" value="10"> 10%</span>
+              <span class="radio-label" data-value="20"><input type="radio" name="adicional" value="20"> 20%</span>
+              <span class="radio-label" data-value="30"><input type="radio" name="adicional" value="30"> 30%</span>
+              <span class="radio-label" data-value="40"><input type="radio" name="adicional" value="40"> 40%</span>
+              <span class="radio-label" data-value="noturno"><input type="radio" name="adicional" value="noturno"> Noturno</span>
             </div>
           </div>
         </div>
@@ -104,17 +104,17 @@
       <!-- SETORIZAÇÃO -->
       <section class="section">
         <h2 class="section-title">Setorização / GSE</h2>
-        <div class="form-grid">
-          <div class="form-group col-12">
-            <label>Local</label>
-            <input type="text" id="local">
-          </div>
+        <div class="form-group">
+          <label>Local</label>
+          <input type="text" id="local">
         </div>
       </section>
 
       <!-- AMBIENTE -->
       <section class="section">
-        <h2 class="section-title">Descrição do Ambiente <span class="hint">(A – artificial / N – natural)</span></h2>
+        <h2 class="section-title">Descrição do Ambiente
+          <span class="hint">(A – artificial / N – natural)</span>
+        </h2>
         <div class="form-grid">
           <div class="form-group col-6"><label>Pé direito</label><input type="text" id="peDireito"></div>
           <div class="form-group col-6"><label>Piso</label><input type="text" id="piso"></div>
@@ -127,8 +127,10 @@
 
       <!-- ATRIBUIÇÕES -->
       <section class="section">
-        <h2 class="section-title">Descrição das Atribuições do Cargo</h2>
-        <textarea id="atribuicoes" rows="3" placeholder="Descreva as atribuições..."></textarea>
+        <h2 class="section-title">Atribuições do Cargo</h2>
+        <div class="form-group">
+          <textarea id="atribuicoes" rows="3" placeholder="Descreva as atribuições..."></textarea>
+        </div>
       </section>
 
       <!-- PERCEPÇÃO DE RISCOS -->
@@ -139,7 +141,9 @@
 
       <!-- EPI -->
       <section class="section">
-        <h2 class="section-title">Aplicação dos EPI <span class="hint">(Registrar foto dos C.A.)</span></h2>
+        <h2 class="section-title">Aplicação dos EPI
+          <span class="hint">(Registrar foto dos C.A.)</span>
+        </h2>
         <div id="epiContainer" class="epi-grid"></div>
       </section>
 
@@ -156,15 +160,18 @@
       <!-- OBSERVAÇÕES -->
       <section class="section">
         <h2 class="section-title">Observações Gerais</h2>
-        <textarea id="obsGerais" rows="3" placeholder="Observações gerais..."></textarea>
+        <div class="form-group">
+          <textarea id="obsGerais" rows="3" placeholder="Observações gerais..."></textarea>
+        </div>
       </section>
 
-      <!-- PERICULOSIDADE + APOSENTADORIA -->
+      <!-- PERICULOSIDADE -->
       <section class="section">
         <h2 class="section-title">Análise de Periculosidade</h2>
         <div id="periculosidadeContainer" class="selectable-grid"></div>
       </section>
 
+      <!-- APOSENTADORIA -->
       <section class="section">
         <h2 class="section-title">Aposentadoria Especial (Decreto 3048/99)</h2>
         <div id="aposentadoriaContainer" class="selectable-grid"></div>
@@ -172,37 +179,38 @@
 
       <!-- RESPONSÁVEL -->
       <section class="section">
-        <h2 class="section-title">Responsável pela Avaliação Técnica</h2>
-        <select id="responsavelSelect" class="responsavel-select">
-          <option value="">-- Selecione --</option>
-          <option value="Caio Vinicius G. da Silva">Caio Vinicius G. da Silva</option>
-          <option value="Anielson P. de Castro">Anielson P. de Castro</option>
-          <option value="Pedro de Paula Campos">Pedro de Paula Campos</option>
-          <option value="Fernando Mendes Santana">Fernando Mendes Santana</option>
-          <option value="Samuel Rodrigues da C. Neto">Samuel Rodrigues da C. Neto</option>
-        </select>
+        <h2 class="section-title">Responsável pela Avaliação</h2>
+        <div class="form-group">
+          <select id="responsavelSelect" class="responsavel-select">
+            <option value="">-- Selecione --</option>
+            <option value="Caio Vinicius G. da Silva">Caio Vinicius G. da Silva</option>
+            <option value="Anielson P. de Castro">Anielson P. de Castro</option>
+            <option value="Pedro de Paula Campos">Pedro de Paula Campos</option>
+            <option value="Fernando Mendes Santana">Fernando Mendes Santana</option>
+            <option value="Samuel Rodrigues da C. Neto">Samuel Rodrigues da C. Neto</option>
+          </select>
+        </div>
       </section>
 
       <!-- ASSINATURA -->
       <section class="section">
-        <h2 class="section-title">Assinatura do Funcionário Entrevistado</h2>
-        <p class="hint">Participante da entrevista de percepção de riscos</p>
+        <h2 class="section-title">Assinatura do Funcionário</h2>
         <div class="signature-box">
           <canvas id="signatureCanvas" width="600" height="150"></canvas>
-          <button type="button" id="clearSignature" class="btn btn-sm btn-secondary">Limpar assinatura</button>
+          <button type="button" id="clearSignature" class="btn btn-sm btn-secondary">Limpar</button>
         </div>
       </section>
 
       <!-- AÇÕES -->
       <div class="form-actions">
-        <button id="btnSave" class="btn btn-primary btn-lg">Salvar Checklist</button>
-        <button id="btnPrint" class="btn btn-secondary">Imprimir / PDF</button>
+        <button id="btnSave" class="btn btn-primary btn-lg">Salvar</button>
+        <button id="btnPrint" class="btn btn-secondary">Imprimir</button>
         <button id="btnClear" class="btn btn-danger">Limpar</button>
       </div>
     </div>
   </div>
 
-  <!-- MODAL: Expandir item (notes, photo, frequency) -->
+  <!-- MODAL RISCOS / PERICULOSIDADE / APOSENTADORIA -->
   <div id="modal" class="modal" style="display:none;">
     <div class="modal-content">
       <div class="modal-header">
@@ -234,7 +242,7 @@
         </div>
         <div class="form-group">
           <label>Foto</label>
-          <input type="file" id="modalPhoto" accept="image/*" capture="environment">
+          <input type="file" id="modalPhoto" accept="image/*">
           <div id="modalPhotoPreview" class="photo-preview"></div>
         </div>
       </div>
@@ -244,7 +252,7 @@
     </div>
   </div>
 
-  <!-- MODAL EPI: link photo -->
+  <!-- MODAL EPI -->
   <div id="modalEpi" class="modal" style="display:none;">
     <div class="modal-content">
       <div class="modal-header">
@@ -254,7 +262,7 @@
       <div class="modal-body">
         <div class="form-group">
           <label>Foto do C.A.</label>
-          <input type="file" id="modalEpiPhoto" accept="image/*" capture="environment">
+          <input type="file" id="modalEpiPhoto" accept="image/*">
           <div id="modalEpiPhotoPreview" class="photo-preview"></div>
         </div>
       </div>
