@@ -8,39 +8,84 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
+
+  <!-- TELA INICIAL: Seleção de empresa -->
+  <div id="screenCompany" class="screen active">
+    <div class="company-container">
+      <img src="images/logo-colorida.png" alt="MedWork" class="company-logo">
+      <h1>Checklist GERAL</h1>
+      <p class="company-sub">Selecione ou cadastre a empresa</p>
+
+      <div class="company-select-wrap">
+        <select id="companySelect">
+          <option value="">-- Selecione a empresa --</option>
+        </select>
+        <button id="btnNewCompany" class="btn btn-sm btn-primary">+ Nova</button>
+      </div>
+
+      <div id="newCompanyForm" class="new-company-form" style="display:none;">
+        <input type="text" id="newCompanyName" placeholder="Nome da empresa">
+        <button id="btnSaveCompany" class="btn btn-sm btn-success">Salvar</button>
+        <button id="btnCancelCompany" class="btn btn-sm btn-secondary">Cancelar</button>
+      </div>
+
+      <button id="btnEnterChecklist" class="btn btn-primary btn-lg" disabled>Entrar</button>
+
+      <!-- Import -->
+      <div class="import-section">
+        <h3>Importar Setores e Cargos</h3>
+        <p class="hint">Planilha com colunas: <strong>Setor</strong> | <strong>Cargo</strong></p>
+        <input type="file" id="importFile" accept=".xlsx,.xls,.csv">
+      </div>
+    </div>
+  </div>
+
+  <!-- TELA PRINCIPAL: Checklist -->
+  <div id="screenChecklist" class="screen">
     <header class="header">
       <img src="images/logo-branco.png" alt="MedWork" class="header-logo">
       <div class="header-text">
-        <h1>Entrevista de Percepção de Riscos Ocupacionais com os Trabalhadores</h1>
-        <p class="subtitle">Checklist GERAL</p>
+        <h1>Entrevista de Percepção de Riscos Ocupacionais</h1>
+        <p class="subtitle" id="headerCompany"></p>
       </div>
+      <button id="btnBack" class="btn btn-sm btn-back" title="Voltar">Voltar</button>
     </header>
 
-    <form id="checklistForm">
-      <!-- INFORMAÇÕES GERAIS -->
+    <div class="container">
+      <!-- DUPLICATE ALERT -->
+      <div id="duplicateAlert" class="alert alert-warning" style="display:none;">
+        Atenção: Já existe um checklist salvo para este funcionário neste setor. Deseja sobrescrever?
+        <button id="btnOverwrite" class="btn btn-sm btn-danger">Sobrescrever</button>
+        <button id="btnDismissAlert" class="btn btn-sm btn-secondary">Cancelar</button>
+      </div>
+
+      <!-- INFO GERAL -->
       <section class="section">
         <h2 class="section-title">Informações Gerais</h2>
         <div class="form-grid">
           <div class="form-group col-6">
-            <label for="dataVisita">Data da visita</label>
-            <input type="date" id="dataVisita" name="dataVisita">
+            <label>Data da visita</label>
+            <input type="date" id="dataVisita">
           </div>
           <div class="form-group col-6">
-            <label for="dataVencExtintores">Data de venc. dos extintores</label>
-            <input type="date" id="dataVencExtintores" name="dataVencExtintores">
+            <label>Data de venc. dos extintores</label>
+            <input type="date" id="dataVencExtintores">
+          </div>
+          <div class="form-group col-6">
+            <label>Setor</label>
+            <select id="setorSelect">
+              <option value="">-- Selecione --</option>
+            </select>
+          </div>
+          <div class="form-group col-6">
+            <label>Cargo / Função</label>
+            <select id="cargoSelect" disabled>
+              <option value="">-- Selecione o setor primeiro --</option>
+            </select>
           </div>
           <div class="form-group col-12">
-            <label for="nomeEmpresa">Nome da empresa</label>
-            <input type="text" id="nomeEmpresa" name="nomeEmpresa">
-          </div>
-          <div class="form-group col-12">
-            <label for="funcionario">Funcionário entrevistado</label>
-            <input type="text" id="funcionario" name="funcionario">
-          </div>
-          <div class="form-group col-12">
-            <label for="cargo">Cargo / função</label>
-            <input type="text" id="cargo" name="cargo">
+            <label>Funcionário entrevistado</label>
+            <input type="text" id="funcionario">
           </div>
           <div class="form-group col-12">
             <label>Recebe adicional</label>
@@ -50,406 +95,176 @@
               <label class="radio-label"><input type="radio" name="adicional" value="20"> 20%</label>
               <label class="radio-label"><input type="radio" name="adicional" value="30"> 30%</label>
               <label class="radio-label"><input type="radio" name="adicional" value="40"> 40%</label>
-              <label class="radio-label"><input type="radio" name="adicional" value="noturno"> Adicional noturno</label>
+              <label class="radio-label"><input type="radio" name="adicional" value="noturno"> Noturno</label>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- SETORIZAÇÃO / GSE -->
+      <!-- SETORIZAÇÃO -->
       <section class="section">
         <h2 class="section-title">Setorização / GSE</h2>
         <div class="form-grid">
           <div class="form-group col-12">
-            <label for="local">Local</label>
-            <input type="text" id="local" name="local">
-          </div>
-          <div class="form-group col-12">
-            <label for="setor">Setor</label>
-            <input type="text" id="setor" name="setor">
+            <label>Local</label>
+            <input type="text" id="local">
           </div>
         </div>
       </section>
 
-      <!-- DESCRIÇÃO DO AMBIENTE -->
+      <!-- AMBIENTE -->
       <section class="section">
         <h2 class="section-title">Descrição do Ambiente <span class="hint">(A – artificial / N – natural)</span></h2>
         <div class="form-grid">
-          <div class="form-group col-6">
-            <label for="peDireito">Pé direito</label>
-            <input type="text" id="peDireito" name="peDireito">
-          </div>
-          <div class="form-group col-6">
-            <label for="piso">Piso</label>
-            <input type="text" id="piso" name="piso">
-          </div>
-          <div class="form-group col-6">
-            <label for="telhado">Telhado</label>
-            <input type="text" id="telhado" name="telhado">
-          </div>
-          <div class="form-group col-6">
-            <label for="ventilacao">Ventilação</label>
-            <input type="text" id="ventilacao" name="ventilacao">
-          </div>
-          <div class="form-group col-6">
-            <label for="iluminacao">Iluminação</label>
-            <input type="text" id="iluminacao" name="iluminacao">
-          </div>
-          <div class="form-group col-6">
-            <label for="paredes">Paredes</label>
-            <input type="text" id="paredes" name="paredes">
-          </div>
+          <div class="form-group col-6"><label>Pé direito</label><input type="text" id="peDireito"></div>
+          <div class="form-group col-6"><label>Piso</label><input type="text" id="piso"></div>
+          <div class="form-group col-6"><label>Telhado</label><input type="text" id="telhado"></div>
+          <div class="form-group col-6"><label>Ventilação</label><input type="text" id="ventilacao"></div>
+          <div class="form-group col-6"><label>Iluminação</label><input type="text" id="iluminacao"></div>
+          <div class="form-group col-6"><label>Paredes</label><input type="text" id="paredes"></div>
         </div>
       </section>
 
-      <!-- DESCRIÇÃO DAS ATRIBUIÇÕES -->
+      <!-- ATRIBUIÇÕES -->
       <section class="section">
-        <h2 class="section-title">Descrição das Atribuições do Cargo / Função do Colaborador</h2>
-        <div class="form-group">
-          <textarea id="atribuicoes" name="atribuicoes" rows="4" placeholder="Descreva as atribuições..."></textarea>
-        </div>
+        <h2 class="section-title">Descrição das Atribuições do Cargo</h2>
+        <textarea id="atribuicoes" rows="3" placeholder="Descreva as atribuições..."></textarea>
       </section>
 
       <!-- PERCEPÇÃO DE RISCOS -->
       <section class="section">
         <h2 class="section-title">Percepção de Riscos</h2>
-
-        <!-- ACIDENTES -->
-        <div class="risk-category">
-          <h3 class="category-title accident">Acidentes</h3>
-          <table class="risk-table">
-            <thead>
-              <tr>
-                <th class="col-check">X</th>
-                <th class="col-risk">Riscos / agentes nocivos</th>
-                <th class="col-desc">Descrição da fonte geradora / perigos</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td><input type="checkbox" name="risk_ac_1"></td><td>Abastecimento de veículos, máquinas, motores</td><td><input type="text" name="desc_ac_1"></td></tr>
-              <tr><td><input type="checkbox" name="risk_ac_2"></td><td>Afogamento</td><td><input type="text" name="desc_ac_2"></td></tr>
-              <tr><td><input type="checkbox" name="risk_ac_3"></td><td>Ataques de animais (domésticos / semelhantes)</td><td><input type="text" name="desc_ac_3"></td></tr>
-              <tr><td><input type="checkbox" name="risk_ac_4"></td><td>Ataques de animais peçonhentos</td><td><input type="text" name="desc_ac_4"></td></tr>
-              <tr><td><input type="checkbox" name="risk_ac_5"></td><td>Atividades sujeitas a chuvas / tempestades</td><td><input type="text" name="desc_ac_5"></td></tr>
-              <tr><td><input type="checkbox" name="risk_ac_6"></td><td>Atrito entre as mãos e material (calo nas mãos)</td><td><input type="text" name="desc_ac_6"></td></tr>
-              <tr><td><input type="checkbox" name="risk_ac_7"></td><td>Atropelamentos</td><td><input type="text" name="desc_ac_7"></td></tr>
-              <tr><td><input type="checkbox" name="risk_ac_8"></td><td>Choques elétricos (condições, atividades etc.)</td><td><input type="text" name="desc_ac_8"></td></tr>
-              <tr><td><input type="checkbox" name="risk_ac_9"></td><td>Compressor de ar / caldeiras</td><td><input type="text" name="desc_ac_9"></td></tr>
-              <tr><td><input type="checkbox" name="risk_ac_10"></td><td>Condução de veículos e/ou operação de máquinas</td><td><input type="text" name="desc_ac_10"></td></tr>
-              <tr><td><input type="checkbox" name="risk_ac_11"></td><td>Cortes / escoriações / perfurações</td><td><input type="text" name="desc_ac_11"></td></tr>
-              <tr><td><input type="checkbox" name="risk_ac_12"></td><td>Engolfamento / encarceramento</td><td><input type="text" name="desc_ac_12"></td></tr>
-              <tr><td><input type="checkbox" name="risk_ac_13"></td><td>Escorregões, tropeços, quedas</td><td><input type="text" name="desc_ac_13"></td></tr>
-              <tr><td><input type="checkbox" name="risk_ac_14"></td><td>Espaços confinados</td><td><input type="text" name="desc_ac_14"></td></tr>
-              <tr><td><input type="checkbox" name="risk_ac_15"></td><td>Explosões (líquidos, gases, poeiras, mat. sólidos)</td><td><input type="text" name="desc_ac_15"></td></tr>
-              <tr><td><input type="checkbox" name="risk_ac_16"></td><td>Iluminação inadequada (espec. a qtd. de lux)</td><td><input type="text" name="desc_ac_16"></td></tr>
-              <tr><td><input type="checkbox" name="risk_ac_17"></td><td>Manuseio de pequenas qtd. de líquidos inflamáveis</td><td><input type="text" name="desc_ac_17"></td></tr>
-              <tr><td><input type="checkbox" name="risk_ac_18"></td><td>Máquinas rotativas manuais</td><td><input type="text" name="desc_ac_18"></td></tr>
-              <tr><td><input type="checkbox" name="risk_ac_19"></td><td>Máquinas / equipamentos sem proteção – NR 12</td><td><input type="text" name="desc_ac_19"></td></tr>
-              <tr><td><input type="checkbox" name="risk_ac_20"></td><td>Mosquitos (áreas de campo que exigem repelente)</td><td><input type="text" name="desc_ac_20"></td></tr>
-              <tr><td><input type="checkbox" name="risk_ac_21"></td><td>Prensamento de membros / aprisionamento</td><td><input type="text" name="desc_ac_21"></td></tr>
-              <tr><td><input type="checkbox" name="risk_ac_22"></td><td>Projeção de partículas</td><td><input type="text" name="desc_ac_22"></td></tr>
-              <tr><td><input type="checkbox" name="risk_ac_23"></td><td>Queda de objetos e/ou materiais</td><td><input type="text" name="desc_ac_23"></td></tr>
-              <tr><td><input type="checkbox" name="risk_ac_24"></td><td>Queimaduras</td><td><input type="text" name="desc_ac_24"></td></tr>
-              <tr><td><input type="checkbox" name="risk_ac_25"></td><td>Trabalho a quente – NR 34</td><td><input type="text" name="desc_ac_25"></td></tr>
-              <tr><td><input type="checkbox" name="risk_ac_26"></td><td>Trabalho em altura</td><td><input type="text" name="desc_ac_26"></td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- BIOLÓGICOS -->
-        <div class="risk-category">
-          <h3 class="category-title biological">Biológicos</h3>
-          <table class="risk-table">
-            <thead>
-              <tr>
-                <th class="col-check">X</th>
-                <th class="col-risk">Riscos / agentes nocivos</th>
-                <th class="col-desc">Descrição da fonte geradora / perigos</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td><input type="checkbox" name="risk_bio_1"></td><td>Água parada / Parasitas / Insetos</td><td><input type="text" name="desc_bio_1"></td></tr>
-              <tr><td><input type="checkbox" name="risk_bio_2"></td><td>Contato com cadáveres</td><td><input type="text" name="desc_bio_2"></td></tr>
-              <tr><td><input type="checkbox" name="risk_bio_3"></td><td>Contato com material infecto-contagiantes</td><td><input type="text" name="desc_bio_3"></td></tr>
-              <tr><td><input type="checkbox" name="risk_bio_4"></td><td>Contato com pacientes possivelmente infectados</td><td><input type="text" name="desc_bio_4"></td></tr>
-              <tr><td><input type="checkbox" name="risk_bio_5"></td><td>Limpeza de estábulos de animais</td><td><input type="text" name="desc_bio_5"></td></tr>
-              <tr><td><input type="checkbox" name="risk_bio_6"></td><td>Manipulação de alimentos</td><td><input type="text" name="desc_bio_6"></td></tr>
-              <tr><td><input type="checkbox" name="risk_bio_7"></td><td>Recolhimento de lixo público (Qtd. pessoas locais)</td><td><input type="text" name="desc_bio_7"></td></tr>
-              <tr><td><input type="checkbox" name="risk_bio_8"></td><td>Vírus / Bactérias / Fungos / Protozoários</td><td><input type="text" name="desc_bio_8"></td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- AEP -->
-        <div class="risk-category">
-          <h3 class="category-title ergonomic">AEP – Avaliação Ergonômica Preliminar</h3>
-          <table class="risk-table">
-            <thead>
-              <tr>
-                <th class="col-check">X</th>
-                <th class="col-risk">Riscos / agentes nocivos</th>
-                <th class="col-desc">Descrição da fonte geradora / perigos</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td><input type="checkbox" name="risk_aep_1"></td><td>Acúmulo de horas extras</td><td><input type="text" name="desc_aep_1"></td></tr>
-              <tr><td><input type="checkbox" name="risk_aep_2"></td><td>Ausência de móvel / dispositivo / equipamento</td><td><input type="text" name="desc_aep_2"></td></tr>
-              <tr><td><input type="checkbox" name="risk_aep_3"></td><td>Esforço fonatório (vocal)</td><td><input type="text" name="desc_aep_3"></td></tr>
-              <tr><td><input type="checkbox" name="risk_aep_4"></td><td>Estresse psíquico</td><td><input type="text" name="desc_aep_4"></td></tr>
-              <tr><td><input type="checkbox" name="risk_aep_5"></td><td>Exigência de frequente flexões da coluna vertebral</td><td><input type="text" name="desc_aep_5"></td></tr>
-              <tr><td><input type="checkbox" name="risk_aep_6"></td><td>Falta de funcionários / excesso de demandas</td><td><input type="text" name="desc_aep_6"></td></tr>
-              <tr><td><input type="checkbox" name="risk_aep_7"></td><td>Fatores psicossociais diversos (especifique)</td><td><input type="text" name="desc_aep_7"></td></tr>
-              <tr><td><input type="checkbox" name="risk_aep_8"></td><td>Frequente deslocamento a pé</td><td><input type="text" name="desc_aep_8"></td></tr>
-              <tr><td><input type="checkbox" name="risk_aep_9"></td><td>Levantamento e transporte manual de peso</td><td><input type="text" name="desc_aep_9"></td></tr>
-              <tr><td><input type="checkbox" name="risk_aep_10"></td><td>Movimentos repetitivos</td><td><input type="text" name="desc_aep_10"></td></tr>
-              <tr><td><input type="checkbox" name="risk_aep_11"></td><td>Postura em pé por longos períodos</td><td><input type="text" name="desc_aep_11"></td></tr>
-              <tr><td><input type="checkbox" name="risk_aep_12"></td><td>Postura sentada por longos períodos</td><td><input type="text" name="desc_aep_12"></td></tr>
-              <tr><td><input type="checkbox" name="risk_aep_13"></td><td>Posturas incômodas por longos períodos</td><td><input type="text" name="desc_aep_13"></td></tr>
-              <tr><td><input type="checkbox" name="risk_aep_14"></td><td>Trabalho noturno (atua por escala?)</td><td><input type="text" name="desc_aep_14"></td></tr>
-            </tbody>
-          </table>
-          <div class="form-group" style="margin-top: 12px;">
-            <label for="obsAep"><strong>Observações - AEP</strong></label>
-            <textarea id="obsAep" name="obsAep" rows="3" placeholder="Descreva as observações..."></textarea>
-          </div>
-        </div>
-
-        <!-- FÍSICOS -->
-        <div class="risk-category">
-          <h3 class="category-title physical">Físicos</h3>
-          <table class="risk-table">
-            <thead>
-              <tr>
-                <th class="col-check">X</th>
-                <th class="col-risk">Riscos / agentes nocivos</th>
-                <th class="col-desc">Descrição da fonte geradora / perigos</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td><input type="checkbox" name="risk_fis_1"></td><td>Calor por fonte natural (cabine de veículos)</td><td><input type="text" name="desc_fis_1"></td></tr>
-              <tr><td><input type="checkbox" name="risk_fis_2"></td><td>Exposição a calor (gerado por fonte artificial)</td><td><input type="text" name="desc_fis_2"></td></tr>
-              <tr><td><input type="checkbox" name="risk_fis_3"></td><td>Exposição ao frio (câmaras frias)</td><td><input type="text" name="desc_fis_3"></td></tr>
-              <tr><td><input type="checkbox" name="risk_fis_4"></td><td>Exposição aos raios solares / radiação ultravioleta</td><td><input type="text" name="desc_fis_4"></td></tr>
-              <tr><td><input type="checkbox" name="risk_fis_5"></td><td>Radiação ionizante</td><td><input type="text" name="desc_fis_5"></td></tr>
-              <tr><td><input type="checkbox" name="risk_fis_6"></td><td>Realiza Raio-X (ou exp. a raios alfa, beta ou gama)</td><td><input type="text" name="desc_fis_6"></td></tr>
-              <tr><td><input type="checkbox" name="risk_fis_7"></td><td>Ruído contínuo e/ou intermitente (quantitativo)</td><td><input type="text" name="desc_fis_7"></td></tr>
-              <tr><td><input type="checkbox" name="risk_fis_8"></td><td>Ruído qualitativo (abaixo do nível de ação)</td><td><input type="text" name="desc_fis_8"></td></tr>
-              <tr><td><input type="checkbox" name="risk_fis_9"></td><td>Umidade / contato com água de forma habitual</td><td><input type="text" name="desc_fis_9"></td></tr>
-              <tr><td><input type="checkbox" name="risk_fis_10"></td><td>Vibração – VCI</td><td><input type="text" name="desc_fis_10"></td></tr>
-              <tr><td><input type="checkbox" name="risk_fis_11"></td><td>Vibração – VMB</td><td><input type="text" name="desc_fis_11"></td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- QUÍMICOS -->
-        <div class="risk-category">
-          <h3 class="category-title chemical">Químicos</h3>
-          <table class="risk-table">
-            <thead>
-              <tr>
-                <th class="col-check">X</th>
-                <th class="col-risk">Riscos / agentes nocivos</th>
-                <th class="col-desc">Descrição da fonte geradora / perigos</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td><input type="checkbox" name="risk_qui_1"></td><td>Aplicação de defensivos agrícolas</td><td><input type="text" name="desc_qui_1"></td></tr>
-              <tr><td><input type="checkbox" name="risk_qui_2"></td><td>Aplicação de inseticidas</td><td><input type="text" name="desc_qui_2"></td></tr>
-              <tr><td><input type="checkbox" name="risk_qui_3"></td><td>Contato com óleos e graxas / Superlub</td><td><input type="text" name="desc_qui_3"></td></tr>
-              <tr><td><input type="checkbox" name="risk_qui_4"></td><td>Contato com substâncias químicas em geral</td><td><input type="text" name="desc_qui_4"></td></tr>
-              <tr><td><input type="checkbox" name="risk_qui_5"></td><td>Contato com Thyner</td><td><input type="text" name="desc_qui_5"></td></tr>
-              <tr><td><input type="checkbox" name="risk_qui_6"></td><td>Exposição a fumaças</td><td><input type="text" name="desc_qui_6"></td></tr>
-              <tr><td><input type="checkbox" name="risk_qui_7"></td><td>Exposição a poeiras incômodas</td><td><input type="text" name="desc_qui_7"></td></tr>
-              <tr><td><input type="checkbox" name="risk_qui_8"></td><td>Fumos metálicos provenientes de solda</td><td><input type="text" name="desc_qui_8"></td></tr>
-              <tr><td><input type="checkbox" name="risk_qui_9"></td><td>Gases / névoas / vapores químicos</td><td><input type="text" name="desc_qui_9"></td></tr>
-              <tr><td><input type="checkbox" name="risk_qui_10"></td><td>Petróleo, xisto betuminoso e seus derivados</td><td><input type="text" name="desc_qui_10"></td></tr>
-              <tr><td><input type="checkbox" name="risk_qui_11"></td><td>Pintura com pincel (fotos das tintas)</td><td><input type="text" name="desc_qui_11"></td></tr>
-              <tr><td><input type="checkbox" name="risk_qui_12"></td><td>Pintura com pistola (fotos das tintas)</td><td><input type="text" name="desc_qui_12"></td></tr>
-              <tr><td><input type="checkbox" name="risk_qui_13"></td><td>Pintura com spray (fotos das tintas)</td><td><input type="text" name="desc_qui_13"></td></tr>
-              <tr><td><input type="checkbox" name="risk_qui_14"></td><td>Utilização de produtos de limpeza (saponáceos)</td><td><input type="text" name="desc_qui_14"></td></tr>
-              <tr><td><input type="checkbox" name="risk_qui_15"></td><td>Outros:</td><td><input type="text" name="desc_qui_15" placeholder="Especifique..."></td></tr>
-            </tbody>
-          </table>
-        </div>
+        <div id="risksContainer"></div>
       </section>
 
       <!-- EPI -->
       <section class="section">
         <h2 class="section-title">Aplicação dos EPI <span class="hint">(Registrar foto dos C.A.)</span></h2>
-        <div class="epi-grid">
-          <div class="epi-col">
-            <label class="epi-item"><input type="checkbox" name="epi_1"> Avental de raspa</label>
-            <label class="epi-item"><input type="checkbox" name="epi_2"> Avental impermeável</label>
-            <label class="epi-item"><input type="checkbox" name="epi_3"> Bota impermeável PVC</label>
-            <label class="epi-item"><input type="checkbox" name="epi_4"> Botina de segurança</label>
-            <label class="epi-item"><input type="checkbox" name="epi_5"> Calça térmica (frio)</label>
-            <label class="epi-item"><input type="checkbox" name="epi_6"> Capa de chuva</label>
-            <label class="epi-item"><input type="checkbox" name="epi_7"> Capacete de segurança</label>
-            <label class="epi-item"><input type="checkbox" name="epi_8"> Balaclava (frio / NR 10)</label>
-            <label class="epi-item"><input type="checkbox" name="epi_9"> Cinta ergonômica</label>
-            <label class="epi-item"><input type="checkbox" name="epi_10"> Cinto de segurança</label>
-            <label class="epi-item"><input type="checkbox" name="epi_11"> Colete refletivo</label>
-            <label class="epi-item"><input type="checkbox" name="epi_12"> Conj. Aplic. agrotóxicos</label>
-            <label class="epi-item"><input type="checkbox" name="epi_13"> Jaleco hospitalar</label>
-            <label class="epi-item"><input type="checkbox" name="epi_14"> Japona térmica (frio)</label>
-          </div>
-          <div class="epi-col">
-            <label class="epi-item"><input type="checkbox" name="epi_15"> Luva antivibração</label>
-            <label class="epi-item"><input type="checkbox" name="epi_16"> Luva de procedimento (saúde)</label>
-            <label class="epi-item"><input type="checkbox" name="epi_17"> Luva de raspa</label>
-            <label class="epi-item"><input type="checkbox" name="epi_18"> Luva de vaqueta</label>
-            <label class="epi-item"><input type="checkbox" name="epi_19"> Luva estéril</label>
-            <label class="epi-item"><input type="checkbox" name="epi_20"> Luva látex</label>
-            <label class="epi-item"><input type="checkbox" name="epi_21"> Luva malha de aço</label>
-            <label class="epi-item"><input type="checkbox" name="epi_22"> Luva nitrílica / neoprex</label>
-            <label class="epi-item"><input type="checkbox" name="epi_23"> Luva para eletricidade</label>
-            <label class="epi-item"><input type="checkbox" name="epi_24"> Luva pigmentada / PU</label>
-            <label class="epi-item"><input type="checkbox" name="epi_25"> Luva plástica (p/ alimentos)</label>
-            <label class="epi-item"><input type="checkbox" name="epi_26"> Luva química</label>
-            <label class="epi-item"><input type="checkbox" name="epi_27"> Luva térmica (queimadura)</label>
-            <label class="epi-item"><input type="checkbox" name="epi_28"> Luva térmica (frio)</label>
-          </div>
-          <div class="epi-col">
-            <label class="epi-item"><input type="checkbox" name="epi_29"> Macacão de plástico</label>
-            <label class="epi-item"><input type="checkbox" name="epi_30"> Manga de raspa</label>
-            <label class="epi-item"><input type="checkbox" name="epi_31"> Másc. de procedimento</label>
-            <label class="epi-item"><input type="checkbox" name="epi_32"> Másc. de solda</label>
-            <label class="epi-item"><input type="checkbox" name="epi_33"> Másc. PFF sem filtro</label>
-            <label class="epi-item"><input type="checkbox" name="epi_34"> Másc. PFF com filtro</label>
-            <label class="epi-item"><input type="checkbox" name="epi_35"> Meia térmica (frio)</label>
-            <label class="epi-item"><input type="checkbox" name="epi_36"> Óculos de proteção</label>
-            <label class="epi-item"><input type="checkbox" name="epi_37"> Perneira de raspa</label>
-            <label class="epi-item"><input type="checkbox" name="epi_38"> Perneira de segurança</label>
-            <label class="epi-item"><input type="checkbox" name="epi_39"> Propé descartável</label>
-            <label class="epi-item"><input type="checkbox" name="epi_40"> Prot. auricular concha</label>
-            <label class="epi-item"><input type="checkbox" name="epi_41"> Prot. auricular plug</label>
-            <label class="epi-item"><input type="checkbox" name="epi_42"> Protetor de tireoide</label>
-          </div>
-          <div class="epi-col">
-            <label class="epi-item"><input type="checkbox" name="epi_43"> Protetor facial</label>
-            <label class="epi-item"><input type="checkbox" name="epi_44"> Protetor solar</label>
-            <label class="epi-item"><input type="checkbox" name="epi_45"> Respirador com filtro</label>
-            <label class="epi-item"><input type="checkbox" name="epi_46"> Roupa antichama</label>
-            <label class="epi-item"><input type="checkbox" name="epi_47"> Sapato c/ solado antiderrapante</label>
-            <label class="epi-item"><input type="checkbox" name="epi_48"> Talabarte de posicionamento</label>
-            <label class="epi-item"><input type="checkbox" name="epi_49"> Talabarte de retenção</label>
-            <label class="epi-item"><input type="checkbox" name="epi_50"> Touca</label>
-            <label class="epi-item"><input type="checkbox" name="epi_51"> Touca árabe (raios solares)</label>
-            <label class="epi-item"><input type="checkbox" name="epi_52"> Trava quedas (08mm ou 12mm)</label>
-            <label class="epi-item"><input type="checkbox" name="epi_53"> Trava quedas retrátil</label>
-            <label class="epi-item"><input type="checkbox" name="epi_54"> Vestimenta p/ apicultura</label>
-            <label class="epi-item"><input type="checkbox" name="epi_55"> Vestimenta plástica (biológicos)</label>
-            <label class="epi-item"><input type="checkbox" name="epi_56"> Vestimenta de alumínio (calor)</label>
-          </div>
-        </div>
+        <div id="epiContainer" class="epi-grid"></div>
       </section>
 
       <!-- TREINAMENTOS -->
       <section class="section">
         <h2 class="section-title">Treinamentos</h2>
-        <div class="training-grid">
-          <label class="epi-item"><input type="checkbox" name="tr_1"> NR 01</label>
-          <label class="epi-item"><input type="checkbox" name="tr_2"> NR 05</label>
-          <label class="epi-item"><input type="checkbox" name="tr_3"> NR 06</label>
-          <label class="epi-item"><input type="checkbox" name="tr_4"> NR 10</label>
-          <label class="epi-item"><input type="checkbox" name="tr_5"> NR 11</label>
-          <label class="epi-item"><input type="checkbox" name="tr_6"> NR 12</label>
-          <label class="epi-item"><input type="checkbox" name="tr_7"> NR 13</label>
-          <label class="epi-item"><input type="checkbox" name="tr_8"> NR 17</label>
-          <label class="epi-item"><input type="checkbox" name="tr_9"> NR 18</label>
-          <label class="epi-item"><input type="checkbox" name="tr_10"> NR 20</label>
-          <label class="epi-item"><input type="checkbox" name="tr_11"> NR 22</label>
-          <label class="epi-item"><input type="checkbox" name="tr_12"> NR 23</label>
-          <label class="epi-item"><input type="checkbox" name="tr_13"> NR 31</label>
-          <label class="epi-item"><input type="checkbox" name="tr_14"> NR 31.7</label>
-          <label class="epi-item"><input type="checkbox" name="tr_15"> NR 32</label>
-          <label class="epi-item"><input type="checkbox" name="tr_16"> NR 33</label>
-          <label class="epi-item"><input type="checkbox" name="tr_17"> NR 34</label>
-          <label class="epi-item"><input type="checkbox" name="tr_18"> NR 35</label>
-          <label class="epi-item"><input type="checkbox" name="tr_19"> NR 36</label>
-          <label class="epi-item"><input type="checkbox" name="tr_20"> NR 38</label>
-          <label class="epi-item"><input type="checkbox" name="tr_21"> NT 12</label>
+        <div id="trainingContainer" class="training-grid"></div>
+        <div class="add-other-row">
+          <input type="text" id="newTraining" placeholder="Outro treinamento...">
+          <button id="btnAddTraining" class="btn btn-sm btn-primary">+ Adicionar</button>
         </div>
       </section>
 
-      <!-- OBSERVAÇÕES GERAIS -->
+      <!-- OBSERVAÇÕES -->
       <section class="section">
         <h2 class="section-title">Observações Gerais</h2>
-        <div class="form-group">
-          <textarea id="obsGerais" name="obsGerais" rows="4" placeholder="Observações gerais..."></textarea>
-        </div>
+        <textarea id="obsGerais" rows="3" placeholder="Observações gerais..."></textarea>
       </section>
 
-      <!-- ANÁLISE DE PERICULOSIDADE -->
+      <!-- PERICULOSIDADE + APOSENTADORIA -->
       <section class="section">
         <h2 class="section-title">Análise de Periculosidade</h2>
-        <div class="training-grid">
-          <label class="epi-item"><input type="checkbox" name="per_1"> Explosivos</label>
-          <label class="epi-item"><input type="checkbox" name="per_2"> Inflamáveis</label>
-          <label class="epi-item"><input type="checkbox" name="per_3"> Segurança patrimonial</label>
-          <label class="epi-item"><input type="checkbox" name="per_4"> Eletricidade</label>
-          <label class="epi-item"><input type="checkbox" name="per_5"> Motocicletas</label>
-        </div>
-        <h3 class="subsection-title">Decreto 3048/99</h3>
-        <div class="training-grid">
-          <label class="epi-item"><input type="checkbox" name="dec_1"> Mineração subterrânea</label>
-          <label class="epi-item"><input type="checkbox" name="dec_2"> Operação de compactador de solo (sapin)</label>
-          <label class="epi-item"><input type="checkbox" name="dec_3"> Esvaziamento de biodigestores</label>
-        </div>
+        <div id="periculosidadeContainer" class="selectable-grid"></div>
       </section>
 
-      <!-- RESPONSÁVEIS -->
       <section class="section">
-        <h2 class="section-title">Responsável pelas Avaliações Técnicas</h2>
-        <div class="team-grid">
-          <div class="team-member">
-            <img src="images/image_1.png" alt="Caio Vinicius" class="team-photo">
-            <p class="team-name">Caio Vinicius G. da Silva</p>
-          </div>
-          <div class="team-member">
-            <img src="images/image_2.png" alt="Anielson" class="team-photo">
-            <p class="team-name">Anielson P. de Castro</p>
-          </div>
-          <div class="team-member">
-            <img src="images/image_3.png" alt="Pedro" class="team-photo">
-            <p class="team-name">Pedro de Paula Campos</p>
-          </div>
-          <div class="team-member">
-            <img src="images/image_4.png" alt="Fernando" class="team-photo">
-            <p class="team-name">Fernando Mendes Santana</p>
-          </div>
-          <div class="team-member">
-            <img src="images/image_5.png" alt="Samuel" class="team-photo">
-            <p class="team-name">Samuel Rodrigues da C. Neto</p>
-          </div>
-        </div>
+        <h2 class="section-title">Aposentadoria Especial (Decreto 3048/99)</h2>
+        <div id="aposentadoriaContainer" class="selectable-grid"></div>
+      </section>
+
+      <!-- RESPONSÁVEL -->
+      <section class="section">
+        <h2 class="section-title">Responsável pela Avaliação Técnica</h2>
+        <select id="responsavelSelect" class="responsavel-select">
+          <option value="">-- Selecione --</option>
+          <option value="Caio Vinicius G. da Silva">Caio Vinicius G. da Silva</option>
+          <option value="Anielson P. de Castro">Anielson P. de Castro</option>
+          <option value="Pedro de Paula Campos">Pedro de Paula Campos</option>
+          <option value="Fernando Mendes Santana">Fernando Mendes Santana</option>
+          <option value="Samuel Rodrigues da C. Neto">Samuel Rodrigues da C. Neto</option>
+        </select>
       </section>
 
       <!-- ASSINATURA -->
       <section class="section">
         <h2 class="section-title">Assinatura do Funcionário Entrevistado</h2>
-        <p class="signature-note">Participante da entrevista de percepção de riscos</p>
+        <p class="hint">Participante da entrevista de percepção de riscos</p>
         <div class="signature-box">
           <canvas id="signatureCanvas" width="600" height="150"></canvas>
-          <button type="button" id="clearSignature" class="btn btn-secondary">Limpar assinatura</button>
+          <button type="button" id="clearSignature" class="btn btn-sm btn-secondary">Limpar assinatura</button>
         </div>
       </section>
 
-      <!-- BOTÕES -->
+      <!-- AÇÕES -->
       <div class="form-actions">
-        <button type="button" id="btnSave" class="btn btn-primary">Salvar Checklist</button>
-        <button type="button" id="btnPrint" class="btn btn-secondary">Imprimir / PDF</button>
-        <button type="button" id="btnClear" class="btn btn-danger">Limpar Formulário</button>
+        <button id="btnSave" class="btn btn-primary btn-lg">Salvar Checklist</button>
+        <button id="btnPrint" class="btn btn-secondary">Imprimir / PDF</button>
+        <button id="btnClear" class="btn btn-danger">Limpar</button>
       </div>
-    </form>
-
-    <!-- RESUMO (aparece ao salvar) -->
-    <div id="summaryPanel" class="summary-panel" style="display:none;">
-      <h2>Resumo da Avaliação</h2>
-      <div id="summaryContent"></div>
     </div>
   </div>
 
+  <!-- MODAL: Expandir item (notes, photo, frequency) -->
+  <div id="modal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle"></h3>
+        <button id="modalClose" class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Descrição / Fonte geradora</label>
+          <input type="text" id="modalDesc" placeholder="Descreva...">
+        </div>
+        <div class="form-group">
+          <label>Observações</label>
+          <textarea id="modalNotes" rows="3" placeholder="Notas adicionais..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Frequência de exposição</label>
+          <select id="modalFrequency">
+            <option value="">-- Selecione --</option>
+            <option value="diaria">Diária</option>
+            <option value="semanal">Semanal</option>
+            <option value="quinzenal">Quinzenal</option>
+            <option value="mensal">Mensal</option>
+            <option value="semestral">Semestral</option>
+            <option value="anual">Anual</option>
+            <option value="outra">Outra</option>
+          </select>
+          <input type="text" id="modalFreqOther" placeholder="Especifique..." style="display:none;margin-top:6px;">
+        </div>
+        <div class="form-group">
+          <label>Foto</label>
+          <input type="file" id="modalPhoto" accept="image/*" capture="environment">
+          <div id="modalPhotoPreview" class="photo-preview"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="modalSave" class="btn btn-primary">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL EPI: link photo -->
+  <div id="modalEpi" class="modal" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalEpiTitle"></h3>
+        <button id="modalEpiClose" class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Foto do C.A.</label>
+          <input type="file" id="modalEpiPhoto" accept="image/*" capture="environment">
+          <div id="modalEpiPhotoPreview" class="photo-preview"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="modalEpiSave" class="btn btn-primary">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
