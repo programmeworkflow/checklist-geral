@@ -32,6 +32,23 @@
 
       <button id="btnEnterChecklist" class="btn btn-primary btn-lg btn-full" disabled>Entrar</button>
 
+      <!-- Criar Setor / Cargo manualmente -->
+      <div class="manual-section">
+        <h3>Adicionar Setores e Cargos</h3>
+        <div class="manual-row">
+          <input type="text" id="manualSetor" placeholder="Nome do setor">
+          <button id="btnAddSetor" class="btn btn-sm btn-success">+ Setor</button>
+        </div>
+        <div class="manual-row">
+          <select id="manualSetorForCargo">
+            <option value="">-- Setor --</option>
+          </select>
+          <input type="text" id="manualCargo" placeholder="Nome do cargo">
+          <button id="btnAddCargo" class="btn btn-sm btn-success">+ Cargo</button>
+        </div>
+      </div>
+
+      <!-- Importar planilha -->
       <div class="import-section">
         <h3>Importar Setores e Cargos</h3>
         <p class="hint" style="font-size:0.78rem;color:#888;">Planilha com colunas: <strong>Setor</strong> | <strong>Cargo</strong></p>
@@ -78,10 +95,10 @@
             </select>
           </div>
           <div class="form-group col-6">
-            <label>Cargo / Função</label>
-            <select id="cargoSelect" disabled>
-              <option value="">-- Setor primeiro --</option>
-            </select>
+            <label>Cargos / Funções</label>
+            <div id="cargoCheckboxes" class="cargo-checkboxes">
+              <span class="cargo-placeholder">-- Selecione o setor --</span>
+            </div>
           </div>
           <div class="form-group col-12">
             <label>Funcionário entrevistado</label>
@@ -110,24 +127,9 @@
         </div>
       </section>
 
-      <!-- AMBIENTE -->
-      <section class="section">
-        <h2 class="section-title">Descrição do Ambiente
-          <span class="hint">(A – artificial / N – natural)</span>
-        </h2>
-        <div class="form-grid">
-          <div class="form-group col-6"><label>Pé direito</label><input type="text" id="peDireito"></div>
-          <div class="form-group col-6"><label>Piso</label><input type="text" id="piso"></div>
-          <div class="form-group col-6"><label>Telhado</label><input type="text" id="telhado"></div>
-          <div class="form-group col-6"><label>Ventilação</label><input type="text" id="ventilacao"></div>
-          <div class="form-group col-6"><label>Iluminação</label><input type="text" id="iluminacao"></div>
-          <div class="form-group col-6"><label>Paredes</label><input type="text" id="paredes"></div>
-        </div>
-      </section>
-
       <!-- ATRIBUIÇÕES -->
       <section class="section">
-        <h2 class="section-title">Atribuições do Cargo</h2>
+        <h2 class="section-title">Atribuições dos Cargos</h2>
         <div class="form-group">
           <textarea id="atribuicoes" rows="3" placeholder="Descreva as atribuições..."></textarea>
         </div>
@@ -135,14 +137,14 @@
 
       <!-- PERCEPÇÃO DE RISCOS -->
       <section class="section">
-        <h2 class="section-title">Percepção de Riscos</h2>
+        <h2 class="section-title">Percepções de Riscos</h2>
         <div id="risksContainer"></div>
       </section>
 
       <!-- EPI -->
       <section class="section">
-        <h2 class="section-title">Aplicação dos EPI
-          <span class="hint">(Registrar foto dos C.A.)</span>
+        <h2 class="section-title">Aplicação dos EPIs
+          <span class="hint">(Registrar fotos dos C.A.s)</span>
         </h2>
         <div id="epiContainer" class="epi-grid"></div>
       </section>
@@ -159,7 +161,7 @@
 
       <!-- OBSERVAÇÕES -->
       <section class="section">
-        <h2 class="section-title">Observações Gerais</h2>
+        <h2 class="section-title">Observações</h2>
         <div class="form-group">
           <textarea id="obsGerais" rows="3" placeholder="Observações gerais..."></textarea>
         </div>
@@ -194,7 +196,7 @@
 
       <!-- ASSINATURA -->
       <section class="section">
-        <h2 class="section-title">Assinatura do Funcionário</h2>
+        <h2 class="section-title">Assinaturas dos Funcionários</h2>
         <div class="signature-box">
           <canvas id="signatureCanvas" width="600" height="150"></canvas>
           <button type="button" id="clearSignature" class="btn btn-sm btn-secondary">Limpar</button>

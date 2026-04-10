@@ -89,6 +89,8 @@ const TRAININGS = [
   'NR 36','NR 38','NT 12'
 ];
 
+var RISK_ORDER = ['chemical','physical','biological','ergonomic','accident'];
+
 const PERICULOSIDADE = ['Explosivos','Inflamáveis','Segurança patrimonial','Eletricidade','Motocicletas'];
 const APOSENTADORIA = ['Mineração subterrânea','Operação de compactador de solo (sapin)','Esvaziamento de biodigestores'];
 
@@ -98,11 +100,13 @@ const APOSENTADORIA = ['Mineração subterrânea','Operação de compactador de 
 var state = {
   currentCompany: null,
   riskData: {},
+  riskNames: {},  // key -> custom name override
   epiData: {},
   trainingData: {},
   customTrainings: [],
   periculosidadeData: {},
-  aposentadoriaData: {}
+  aposentadoriaData: {},
+  selectedCargos: []  // multi-select
 };
 
 var STORAGE_PREFIX = 'cg_';
@@ -130,9 +134,10 @@ function clKey(company, setor, cargo) {
 function saveChecklist() {
   if (!state.currentCompany) return;
   var s = document.getElementById('setorSelect').value;
-  var c = document.getElementById('cargoSelect').value;
+  var cargosKey = state.selectedCargos.sort().join(',') || '_';
   var data = {
     riskData: state.riskData,
+    riskNames: state.riskNames,
     epiData: state.epiData,
     trainingData: state.trainingData,
     customTrainings: state.customTrainings,
@@ -142,21 +147,20 @@ function saveChecklist() {
     signature: getSignatureData(),
     formFields: collectFormFields()
   };
-  localStorage.setItem(clKey(state.currentCompany, s, c), JSON.stringify(data));
+  localStorage.setItem(clKey(state.currentCompany, s, cargosKey), JSON.stringify(data));
 }
 
 function loadChecklist() {
   if (!state.currentCompany) return null;
   var s = document.getElementById('setorSelect').value;
-  var c = document.getElementById('cargoSelect').value;
-  try { return JSON.parse(localStorage.getItem(clKey(state.currentCompany, s, c))); }
+  var cargosKey = state.selectedCargos.sort().join(',') || '_';
+  try { return JSON.parse(localStorage.getItem(clKey(state.currentCompany, s, cargosKey))); }
   catch(e) { return null; }
 }
 
 function collectFormFields() {
   var fields = {};
   ['dataVisita','dataVencExtintores','funcionario','local',
-   'peDireito','piso','telhado','ventilacao','iluminacao','paredes',
    'atribuicoes','obsGerais'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) fields[id] = el.value;
@@ -164,7 +168,7 @@ function collectFormFields() {
   var rad = document.querySelector('input[name="adicional"]:checked');
   fields.adicional = rad ? rad.value : '';
   fields.setor = document.getElementById('setorSelect').value;
-  fields.cargo = document.getElementById('cargoSelect').value;
+  fields.cargos = state.selectedCargos.slice();
   return fields;
 }
 
@@ -175,7 +179,9 @@ function restoreFormFields(fields) {
     if (id === 'adicional') {
       var r = document.querySelector('input[name="adicional"][value="' + val + '"]');
       if (r) { r.checked = true; updateRadioStyles(); }
-    } else if (id !== 'setor' && id !== 'cargo') {
+    } else if (id === 'cargos' || id === 'setor' || id === 'cargo') {
+      // handled separately
+    } else if (id !== 'setor') {
       var el = document.getElementById(id);
       if (el) el.value = val;
     }
@@ -202,11 +208,16 @@ document.getElementById('adicionalGroup').addEventListener('click', function(e) 
 // ========================================================
 // RENDER: RISKS
 // ========================================================
+function getRiskName(catKey, idx) {
+  var key = catKey + '_' + idx;
+  return state.riskNames[key] || RISKS[catKey].items[idx];
+}
+
 function renderRisks() {
   var container = document.getElementById('risksContainer');
   container.innerHTML = '';
 
-  Object.keys(RISKS).forEach(function(catKey) {
+  RISK_ORDER.forEach(function(catKey) {
     var cat = RISKS[catKey];
     var catDiv = document.createElement('div');
     catDiv.className = 'risk-category';
@@ -219,6 +230,7 @@ function renderRisks() {
     cat.items.forEach(function(item, idx) {
       var key = catKey + '_' + idx;
       var rd = state.riskData[key] || {};
+      var displayName = state.riskNames[key] || item;
 
       var row = document.createElement('div');
       row.className = 'risk-item';
@@ -233,24 +245,37 @@ function renderRisks() {
       cb.className = 'risk-cb';
       cb.checked = !!rd.checked;
 
-      cb.addEventListener('change', (function(k, itm, r, c) {
+      cb.addEventListener('change', (function(k, r, c) {
         return function() {
+          var name = getRiskName(k.split('_')[0], parseInt(k.split('_')[1]));
           if (c.checked) {
             if (!state.riskData[k]) state.riskData[k] = {};
             state.riskData[k].checked = true;
             r.classList.add('active');
-            openRiskModal(k, itm);
+            openRiskModal(k, name);
           } else {
             if (state.riskData[k]) state.riskData[k].checked = false;
             r.classList.remove('active', 'complete', 'has-freq');
           }
           refreshDots(r, k);
         };
-      })(key, item, row, cb));
+      })(key, row, cb));
 
-      var label = document.createElement('span');
-      label.className = 'risk-item-label';
-      label.textContent = item;
+      // Editable name input
+      var nameInput = document.createElement('input');
+      nameInput.type = 'text';
+      nameInput.className = 'risk-edit-name';
+      nameInput.value = displayName;
+      nameInput.addEventListener('change', (function(k) {
+        return function() {
+          var val = this.value.trim();
+          if (val && val !== RISKS[k.split('_')[0]].items[parseInt(k.split('_')[1])]) {
+            state.riskNames[k] = val;
+          } else {
+            delete state.riskNames[k];
+          }
+        };
+      })(key));
 
       var icons = document.createElement('span');
       icons.className = 'risk-item-icons';
@@ -267,15 +292,19 @@ function renderRisks() {
       btnEdit.className = 'icon-btn';
       btnEdit.textContent = '✏️';
 
-      btnEdit.addEventListener('click', (function(k, itm) {
-        return function(e) { e.stopPropagation(); openRiskModal(k, itm); };
-      })(key, item));
+      btnEdit.addEventListener('click', (function(k) {
+        return function(e) {
+          e.stopPropagation();
+          var name = getRiskName(k.split('_')[0], parseInt(k.split('_')[1]));
+          openRiskModal(k, name);
+        };
+      })(key));
 
       icons.appendChild(badge);
       icons.appendChild(dot);
       icons.appendChild(btnEdit);
       row.appendChild(cb);
-      row.appendChild(label);
+      row.appendChild(nameInput);
       row.appendChild(icons);
       catDiv.appendChild(row);
     });
@@ -631,27 +660,94 @@ function renderSectors() {
   });
 }
 
-function renderRoles(setor) {
-  var sel = document.getElementById('cargoSelect');
-  sel.innerHTML = '<option value="">-- Selecione --</option>';
-  sel.disabled = !setor;
-  if (!setor) return;
+function renderCargos(setor) {
+  var container = document.getElementById('cargoCheckboxes');
+  container.innerHTML = '';
+  state.selectedCargos = [];
+
+  if (!setor) {
+    container.innerHTML = '<span class="cargo-placeholder">-- Selecione o setor --</span>';
+    return;
+  }
 
   var companies = loadCompanies();
   var comp = companies.find(function(c) { return c.name === state.currentCompany; });
   if (!comp) return;
 
+  var roles = [];
   var seen = {};
   comp.sectors.forEach(function(s) {
     if (s.name !== setor) return;
     s.roles.forEach(function(r) {
       if (seen[r]) return;
       seen[r] = true;
-      var opt = document.createElement('option');
-      opt.value = r;
-      opt.textContent = r;
-      sel.appendChild(opt);
+      roles.push(r);
     });
+  });
+
+  if (roles.length === 0) {
+    container.innerHTML = '<span class="cargo-placeholder">Nenhum cargo neste setor</span>';
+    return;
+  }
+
+  // "Todas" option
+  var allItem = document.createElement('label');
+  allItem.className = 'cargo-check-item select-all';
+  var allCb = document.createElement('input');
+  allCb.type = 'checkbox';
+  allCb.addEventListener('change', function() {
+    var cbs = container.querySelectorAll('.cargo-check-item:not(.select-all) input[type="checkbox"]');
+    var checked = allCb.checked;
+    cbs.forEach(function(c) { c.checked = checked; });
+    state.selectedCargos = checked ? roles.slice() : [];
+  });
+  var allSpan = document.createElement('span');
+  allSpan.textContent = 'Todas';
+  allItem.appendChild(allCb);
+  allItem.appendChild(allSpan);
+  container.appendChild(allItem);
+
+  // Individual roles
+  roles.forEach(function(r) {
+    var item = document.createElement('label');
+    item.className = 'cargo-check-item';
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.value = r;
+    cb.addEventListener('change', function() {
+      if (cb.checked) {
+        if (state.selectedCargos.indexOf(r) === -1) state.selectedCargos.push(r);
+      } else {
+        state.selectedCargos = state.selectedCargos.filter(function(x) { return x !== r; });
+        allCb.checked = false;
+      }
+      // Check "Todas" if all are selected
+      if (state.selectedCargos.length === roles.length) allCb.checked = true;
+    });
+    var span = document.createElement('span');
+    span.textContent = r;
+    item.appendChild(cb);
+    item.appendChild(span);
+    container.appendChild(item);
+  });
+}
+
+// Also update the manual setor select in company screen
+function renderManualSetorSelect() {
+  var sel = document.getElementById('manualSetorForCargo');
+  sel.innerHTML = '<option value="">-- Setor --</option>';
+  var companies = loadCompanies();
+  var comp = companies.find(function(c) { return c.name === state.currentCompany; });
+  if (!comp) return;
+
+  var seen = {};
+  comp.sectors.forEach(function(s) {
+    if (seen[s.name]) return;
+    seen[s.name] = true;
+    var opt = document.createElement('option');
+    opt.value = s.name;
+    opt.textContent = s.name;
+    sel.appendChild(opt);
   });
 }
 
@@ -720,11 +816,11 @@ document.getElementById('importFile').addEventListener('change', function() {
 // ========================================================
 function checkDuplicate() {
   var setor = document.getElementById('setorSelect').value;
-  var cargo = document.getElementById('cargoSelect').value;
   var func = document.getElementById('funcionario').value.trim();
   if (!func || !setor || !state.currentCompany) return;
 
-  var key = clKey(state.currentCompany, setor, cargo);
+  var cargosKey = state.selectedCargos.sort().join(',') || '_';
+  var key = clKey(state.currentCompany, setor, cargosKey);
   var existing = localStorage.getItem(key);
   if (existing) {
     try {
@@ -808,6 +904,7 @@ function loadSignature(data) {
 document.getElementById('companySelect').addEventListener('change', function() {
   state.currentCompany = this.value;
   document.getElementById('btnEnterChecklist').disabled = !this.value;
+  renderManualSetorSelect();
 });
 
 document.getElementById('btnNewCompany').addEventListener('click', function() {
@@ -835,6 +932,7 @@ document.getElementById('btnSaveCompany').addEventListener('click', function() {
   document.getElementById('btnEnterChecklist').disabled = false;
   document.getElementById('newCompanyForm').style.display = 'none';
   document.getElementById('newCompanyName').value = '';
+  renderManualSetorSelect();
   notify('Empresa criada!');
 });
 
@@ -843,6 +941,7 @@ document.getElementById('btnEnterChecklist').addEventListener('click', function(
   document.getElementById('screenChecklist').classList.add('active');
   document.getElementById('headerCompany').textContent = state.currentCompany;
   renderSectors();
+  renderCargos('');
   setTimeout(resizeCanvas, 100);
 });
 
@@ -851,9 +950,9 @@ document.getElementById('btnBack').addEventListener('click', function() {
   document.getElementById('screenCompany').classList.add('active');
 });
 
-// Sector -> Role
+// Sector -> Cargos
 document.getElementById('setorSelect').addEventListener('change', function() {
-  renderRoles(this.value);
+  renderCargos(this.value);
 });
 
 // Duplicate
@@ -904,11 +1003,13 @@ document.getElementById('btnPrint').addEventListener('click', function() { windo
 document.getElementById('btnClear').addEventListener('click', function() {
   if (!confirm('Limpar todo o formulário?')) return;
   state.riskData = {};
+  state.riskNames = {};
   state.epiData = {};
   state.trainingData = {};
   state.customTrainings = [];
   state.periculosidadeData = {};
   state.aposentadoriaData = {};
+  state.selectedCargos = [];
 
   document.querySelectorAll('#screenChecklist input[type="text"], #screenChecklist input[type="date"], #screenChecklist textarea').forEach(function(el) { el.value = ''; });
   document.querySelectorAll('#screenChecklist input[type="radio"]').forEach(function(el) { el.checked = false; });
@@ -920,22 +1021,49 @@ document.getElementById('btnClear').addEventListener('click', function() {
   notify('Formulário limpo!');
 });
 
-// Load on cargo change
-document.getElementById('cargoSelect').addEventListener('change', function() {
-  var saved = loadChecklist();
-  if (saved) {
-    state.riskData = saved.riskData || {};
-    state.epiData = saved.epiData || {};
-    state.trainingData = saved.trainingData || {};
-    state.customTrainings = saved.customTrainings || [];
-    state.periculosidadeData = saved.periculosidadeData || {};
-    state.aposentadoriaData = saved.aposentadoriaData || {};
-
-    restoreFormFields(saved.formFields);
-    document.getElementById('responsavelSelect').value = saved.responsavel || '';
-    loadSignature(saved.signature);
-    renderAll();
+// Manual Setor + Cargo buttons
+document.getElementById('btnAddSetor').addEventListener('click', function() {
+  var name = document.getElementById('manualSetor').value.trim();
+  var companyName = document.getElementById('companySelect').value;
+  if (!name || !companyName) {
+    notify('Selecione uma empresa e digite o nome do setor.', '#e74c3c');
+    return;
   }
+  var companies = loadCompanies();
+  var comp = companies.find(function(c) { return c.name === companyName; });
+  if (!comp) return;
+  if (comp.sectors.find(function(s) { return s.name === name; })) {
+    notify('Setor já existe!', '#e74c3c');
+    return;
+  }
+  comp.sectors.push({ name: name, roles: [] });
+  saveCompanies(companies);
+  document.getElementById('manualSetor').value = '';
+  renderManualSetorSelect();
+  notify('Setor "' + name + '" criado!');
+});
+
+document.getElementById('btnAddCargo').addEventListener('click', function() {
+  var setorName = document.getElementById('manualSetorForCargo').value;
+  var cargoName = document.getElementById('manualCargo').value.trim();
+  var companyName = document.getElementById('companySelect').value;
+  if (!setorName || !cargoName || !companyName) {
+    notify('Selecione setor e digite o cargo.', '#e74c3c');
+    return;
+  }
+  var companies = loadCompanies();
+  var comp = companies.find(function(c) { return c.name === companyName; });
+  if (!comp) return;
+  var sec = comp.sectors.find(function(s) { return s.name === setorName; });
+  if (!sec) return;
+  if (sec.roles.indexOf(cargoName) !== -1) {
+    notify('Cargo já existe neste setor!', '#e74c3c');
+    return;
+  }
+  sec.roles.push(cargoName);
+  saveCompanies(companies);
+  document.getElementById('manualCargo').value = '';
+  notify('Cargo "' + cargoName + '" adicionado!');
 });
 
 // ========================================================

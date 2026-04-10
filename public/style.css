@@ -78,8 +78,40 @@ body.modal-open { overflow: hidden; }
   font-size: 0.9rem;
 }
 
-.import-section {
+/* Manual add section */
+.manual-section {
   margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+  text-align: left;
+}
+
+.manual-section h3 {
+  font-size: 0.9rem;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.manual-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.manual-row input[type="text"],
+.manual-row select {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1.5px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background: #fff;
+}
+
+.import-section {
+  margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid #eee;
   text-align: left;
@@ -179,6 +211,63 @@ body.modal-open { overflow: hidden; }
   font-size: 0.75rem;
   color: #888;
   display: block;
+}
+
+/* ===== CARGO CHECKBOXES ===== */
+.cargo-checkboxes {
+  border: 1.5px solid #ddd;
+  border-radius: 6px;
+  padding: 6px 8px;
+  max-height: 140px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: #fff;
+}
+
+.cargo-placeholder {
+  font-size: 0.82rem;
+  color: #999;
+}
+
+.cargo-check-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  font-size: 0.82rem;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cargo-check-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #0f3460;
+  flex-shrink: 0;
+}
+
+.cargo-check-item.select-all {
+  font-weight: 700;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 6px;
+  margin-bottom: 2px;
+}
+
+/* ===== RISK EDIT NAME ===== */
+.risk-edit-name {
+  border: none;
+  border-bottom: 1px dashed #999;
+  background: transparent;
+  font-size: 0.84rem;
+  font-family: inherit;
+  padding: 0 2px;
+  flex: 1;
+  min-width: 0;
+  color: #1a1a2e;
+}
+
+.risk-edit-name:focus {
+  outline: none;
+  border-bottom-color: #0f3460;
 }
 
 /* ===== FORM ===== */
