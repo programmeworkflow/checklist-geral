@@ -124,9 +124,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const sidebarContent = (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2 px-4 py-4 border-b border-sidebar-border bg-sidebar">
-        <img src={logoColorida} alt="MedWork" className="h-8" />
-        {!collapsed && <span className="text-sm font-bold text-white">VIS<span className="font-extrabold">TEC</span></span>}
+      <div className="flex flex-col items-center px-4 py-5 border-b border-sidebar-border bg-sidebar">
+        <img src={logoColorida} alt="MedWork" className={cn(collapsed ? 'h-10' : 'h-16')} />
+        {!collapsed && <span className="mt-1 text-base font-bold text-white tracking-wide">VIS<span className="font-extrabold">TEC</span></span>}
       </div>
       <nav className="flex-1 py-2 space-y-0.5 overflow-y-auto">
         {navWithoutConfig.map((item) => renderNavItem(item))}
@@ -156,27 +156,29 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             )}
           </>
         )}
-        {configItem && renderNavItem(configItem)}
       </nav>
       <div className="border-t border-sidebar-border p-2 space-y-0.5">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-sidebar-foreground hover:bg-sidebar-accent"
-          onClick={() => setDark(!dark)}
-          title={dark ? 'Modo claro' : 'Modo escuro'}
-        >
-          {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-        </Button>
-        <div className="hidden md:block">
+        {configItem && renderNavItem(configItem)}
+        <div className="flex items-center justify-between px-2 pt-1">
           <Button
             variant="ghost"
             size="icon"
-            className="w-full text-sidebar-foreground hover:bg-sidebar-accent"
-            onClick={() => setCollapsed(!collapsed)}
+            className="text-sidebar-foreground hover:bg-sidebar-accent"
+            onClick={() => setDark(!dark)}
+            title={dark ? 'Modo claro' : 'Modo escuro'}
           >
-            <ChevronLeft className={cn('h-4 w-4 transition-transform', collapsed && 'rotate-180')} />
+            {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
+          <div className="hidden md:block">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-sidebar-foreground hover:bg-sidebar-accent"
+              onClick={() => setCollapsed(!collapsed)}
+            >
+              <ChevronLeft className={cn('h-4 w-4 transition-transform', collapsed && 'rotate-180')} />
+            </Button>
+          </div>
         </div>
       </div>
     </div>
@@ -212,7 +214,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <ArrowLeft className="h-5 w-5" />
             </Button>
           )}
-          <img src={logoColorida} alt="MedWork" className="h-7" />
+          <img src={logoColorida} alt="MedWork" className="h-9" />
           <span className="text-sm font-semibold text-foreground">VIS<span className="font-extrabold">TEC</span></span>
         </header>
         <main className="flex-1 overflow-y-auto">
