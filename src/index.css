@@ -2,96 +2,93 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
 @layer base {
   :root {
-    --background: 210 20% 98%;
-    --foreground: 220 20% 10%;
+    /* MedWork brand: Blue #0A7BBF + Green #1FAD5F */
+    --background: 210 25% 97%;
+    --foreground: 215 25% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 20% 10%;
+    --card-foreground: 215 25% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 10%;
+    --popover-foreground: 215 25% 12%;
 
-    --primary: 210 80% 45%;
+    --primary: 200 85% 40%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 20% 93%;
-    --secondary-foreground: 220 20% 20%;
+    --secondary: 205 25% 92%;
+    --secondary-foreground: 215 25% 20%;
 
-    --muted: 210 15% 94%;
+    --muted: 210 20% 94%;
     --muted-foreground: 215 14% 46%;
 
-    --accent: 145 60% 42%;
+    --accent: 150 65% 38%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 20% 88%;
-    --input: 214 20% 88%;
-    --ring: 210 80% 45%;
+    --border: 214 22% 88%;
+    --input: 214 22% 88%;
+    --ring: 200 85% 40%;
 
-    --radius: 0.625rem;
+    --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 7%;
-    --sidebar-foreground: 0 0% 85%;
-    --sidebar-primary: 210 80% 55%;
+    --sidebar-background: 210 30% 10%;
+    --sidebar-foreground: 210 10% 82%;
+    --sidebar-primary: 200 85% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 14%;
-    --sidebar-accent-foreground: 0 0% 90%;
-    --sidebar-border: 0 0% 16%;
-    --sidebar-ring: 210 80% 55%;
+    --sidebar-accent: 210 25% 16%;
+    --sidebar-accent-foreground: 0 0% 92%;
+    --sidebar-border: 210 20% 18%;
+    --sidebar-ring: 200 85% 50%;
 
-    --success: 145 60% 42%;
+    --success: 150 65% 38%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
   }
 
   .dark {
-    --background: 220 20% 10%;
-    --foreground: 210 20% 98%;
+    --background: 215 28% 9%;
+    --foreground: 210 20% 95%;
 
-    --card: 220 18% 13%;
-    --card-foreground: 210 20% 98%;
+    --card: 215 25% 12%;
+    --card-foreground: 210 20% 95%;
 
-    --popover: 220 18% 13%;
-    --popover-foreground: 210 20% 98%;
+    --popover: 215 25% 12%;
+    --popover-foreground: 210 20% 95%;
 
-    --primary: 210 80% 55%;
+    --primary: 200 85% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 15% 20%;
-    --secondary-foreground: 210 20% 90%;
+    --secondary: 215 20% 18%;
+    --secondary-foreground: 210 20% 88%;
 
-    --muted: 220 15% 18%;
-    --muted-foreground: 215 14% 60%;
+    --muted: 215 18% 16%;
+    --muted-foreground: 215 14% 55%;
 
-    --accent: 145 60% 42%;
+    --accent: 150 65% 42%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 15% 22%;
-    --input: 220 15% 22%;
-    --ring: 210 80% 55%;
+    --border: 215 18% 20%;
+    --input: 215 18% 20%;
+    --ring: 200 85% 50%;
 
-    --sidebar-background: 0 0% 5%;
-    --sidebar-foreground: 0 0% 85%;
-    --sidebar-primary: 210 80% 55%;
+    --sidebar-background: 215 32% 7%;
+    --sidebar-foreground: 210 10% 80%;
+    --sidebar-primary: 200 85% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 12%;
+    --sidebar-accent: 215 25% 14%;
     --sidebar-accent-foreground: 0 0% 90%;
-    --sidebar-border: 0 0% 14%;
-    --sidebar-ring: 210 80% 55%;
+    --sidebar-border: 215 20% 14%;
+    --sidebar-ring: 200 85% 50%;
 
-    --success: 145 60% 42%;
+    --success: 150 65% 42%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
@@ -102,33 +99,119 @@ All colors MUST be HSL.
   * {
     @apply border-border;
   }
-
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
   }
 }
 
-/* Print styles for PDF report */
+/* ===== 3D Interactive Buttons ===== */
+@layer components {
+  .btn-3d {
+    @apply relative overflow-hidden transition-all duration-150 active:translate-y-0.5;
+    box-shadow:
+      0 2px 0 0 hsl(var(--primary) / 0.5),
+      0 4px 8px -2px hsl(var(--primary) / 0.25);
+  }
+  .btn-3d:hover {
+    box-shadow:
+      0 3px 0 0 hsl(var(--primary) / 0.5),
+      0 6px 12px -2px hsl(var(--primary) / 0.3);
+    transform: translateY(-1px);
+  }
+  .btn-3d:active {
+    box-shadow:
+      0 1px 0 0 hsl(var(--primary) / 0.5),
+      0 2px 4px -1px hsl(var(--primary) / 0.2);
+  }
+
+  .btn-3d-accent {
+    @apply relative overflow-hidden transition-all duration-150 active:translate-y-0.5;
+    box-shadow:
+      0 2px 0 0 hsl(var(--accent) / 0.5),
+      0 4px 8px -2px hsl(var(--accent) / 0.25);
+  }
+  .btn-3d-accent:hover {
+    box-shadow:
+      0 3px 0 0 hsl(var(--accent) / 0.5),
+      0 6px 12px -2px hsl(var(--accent) / 0.3);
+    transform: translateY(-1px);
+  }
+  .btn-3d-accent:active {
+    box-shadow:
+      0 1px 0 0 hsl(var(--accent) / 0.5),
+      0 2px 4px -1px hsl(var(--accent) / 0.2);
+  }
+
+  /* Interactive card blocks */
+  .card-interactive {
+    @apply transition-all duration-200 cursor-pointer;
+    box-shadow:
+      0 1px 3px 0 rgb(0 0 0 / 0.06),
+      0 1px 2px -1px rgb(0 0 0 / 0.06);
+  }
+  .card-interactive:hover {
+    box-shadow:
+      0 10px 25px -5px rgb(0 0 0 / 0.08),
+      0 4px 10px -3px rgb(0 0 0 / 0.04);
+    transform: translateY(-2px);
+  }
+  .card-interactive:active {
+    transform: translateY(0);
+    box-shadow:
+      0 1px 2px 0 rgb(0 0 0 / 0.04);
+  }
+
+  /* Glass effect */
+  .glass {
+    @apply bg-white/80 dark:bg-white/5 backdrop-blur-md;
+  }
+
+  /* Gradient text */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
+  }
+
+  /* Scrollbar thin */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--sidebar-accent)) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--sidebar-accent));
+    border-radius: 99px;
+  }
+}
+
+/* ===== Mobile touch improvements ===== */
+@media (hover: none) {
+  .btn-3d:hover,
+  .btn-3d-accent:hover,
+  .card-interactive:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+/* ===== Print styles ===== */
 @media print {
-  /* Hide sidebar, mobile header, nav */
   [data-sidebar], nav, header, .sidebar-trigger, [data-mobile-nav] {
     display: none !important;
   }
-
-  /* Remove padding from layout wrapper */
   main {
     padding: 0 !important;
     margin: 0 !important;
     max-width: 100% !important;
   }
-
-  /* Page break helpers */
   .print\:break-after-page {
     break-after: page;
     page-break-after: always;
   }
-
-  /* Clean card borders for print */
   .card {
     border: 1px solid #e5e7eb !important;
     box-shadow: none !important;
