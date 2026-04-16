@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,12 +15,12 @@ export default function Relatorios() {
   const [filterType, setFilterType] = useState<FilterType>('empresa');
   const [selectedId, setSelectedId] = useState('');
 
-  const checklists = checklistsStore.getAll();
-  const companies = companiesStore.getAll();
-  const sectors = sectorsStore.getAll();
-  const functions = functionsStore.getAll();
-  const professionals = professionalsStore.getAll();
-  const allMeasures = safetyMeasuresStore.getAll();
+  const { data: checklists = [] } = useQuery({ queryKey: ['checklists'], queryFn: () => checklistsStore.getAll() });
+  const { data: companies = [] } = useQuery({ queryKey: ['companies'], queryFn: () => companiesStore.getAll() });
+  const { data: sectors = [] } = useQuery({ queryKey: ['sectors'], queryFn: () => sectorsStore.getAll() });
+  const { data: functions = [] } = useQuery({ queryKey: ['functions'], queryFn: () => functionsStore.getAll() });
+  const { data: professionals = [] } = useQuery({ queryKey: ['professionals'], queryFn: () => professionalsStore.getAll() });
+  const { data: allMeasures = [] } = useQuery({ queryKey: ['safetyMeasures'], queryFn: () => safetyMeasuresStore.getAll() });
 
   const filterOptions = useMemo(() => {
     switch (filterType) {

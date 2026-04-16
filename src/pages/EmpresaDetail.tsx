@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useStore } from '@/hooks/useStore';
 import { companiesStore, sectorsStore, functionsStore, checklistsStore, safetyMeasuresStore } from '@/lib/storage';
 import { Card } from '@/components/ui/card';
@@ -26,8 +27,8 @@ export default function EmpresaDetail() {
   const companyFunctions = companySectors.flatMap(s =>
     functions.items.filter(f => f.sectorId === s.id)
   );
-  const checklists = checklistsStore.getAll();
-  const allMeasures = safetyMeasuresStore.getAll();
+  const { data: checklists = [] } = useQuery({ queryKey: ['checklists'], queryFn: () => checklistsStore.getAll() });
+  const { data: allMeasures = [] } = useQuery({ queryKey: ['safetyMeasures'], queryFn: () => safetyMeasuresStore.getAll() });
 
   const completedFunctionIds = new Set(
     checklists.filter(cl => cl.companyId === id).flatMap(cl => cl.functionIds || [])

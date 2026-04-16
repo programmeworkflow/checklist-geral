@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useStore } from '@/hooks/useStore';
 import { safetyMeasuresStore, risksStore, riskCategoriesStore } from '@/lib/storage';
 import type { SafetyMeasure } from '@/lib/storage';
@@ -14,6 +15,7 @@ import { SearchInput } from '@/components/SearchInput';
 import { GenericExcelImport } from '@/components/GenericExcelImport';
 
 export default function Medidas() {
+  const qc = useQueryClient();
   const measures = useStore(safetyMeasuresStore);
   const risks = useStore(risksStore);
   const categories = useStore(riskCategoriesStore);
@@ -25,23 +27,23 @@ export default function Medidas() {
 
   const resetForm = () => { setAdding(false); setEditing(null); setName(''); setSelectedRiskIds([]); };
 
-  const handleMeasureImport = useCallback((rows: Record<string, string>[]) => {
+  const handleMeasureImport = useCallback(async (rows: Record<string, string>[]) => {
     let created = 0;
     let skipped = 0;
-    rows.forEach(row => {
+    for (const row of rows) {
       const measureName = row['Nome da medida']?.trim();
       const riskName = row['Risco vinculado']?.trim();
-      if (!measureName || !riskName) { skipped++; return; }
+      if (!measureName || !riskName) { skipped++; continue; }
       const risk = risks.items.find(r => r.name.toLowerCase() === riskName.toLowerCase());
-      if (!risk) { skipped++; return; }
+      if (!risk) { skipped++; continue; }
       const exists = measures.items.some(m => m.name.toLowerCase() === measureName.toLowerCase() && m.riskId === risk.id);
-      if (exists) { skipped++; return; }
-      safetyMeasuresStore.add({ name: measureName, riskId: risk.id } as any);
+      if (exists) { skipped++; continue; }
+      await safetyMeasuresStore.add({ name: measureName, riskId: risk.id } as any);
       created++;
-    });
-    if (created > 0) measures.refresh();
+    }
+    if (created > 0) qc.invalidateQueries({ queryKey: ['safety_measures'] });
     return { created, skipped };
-  }, [risks.items, measures]);
+  }, [risks.items, measures, qc]);
 
   const startAdd = () => { resetForm(); setAdding(true); };
 
@@ -54,8 +56,9 @@ export default function Medidas() {
     setAdding(false);
   };
 
-  const handleDuplicate = (item: SafetyMeasure) => {
-    measures.add({ name: item.name + ' (cópia)', riskId: item.riskId });
+  const handleDuplicate = async (item: SafetyMeasure) => {
+    await safetyMeasuresStore.add({ name: item.name + ' (cópia)', riskId: item.riskId } as any);
+    qc.invalidateQueries({ queryKey: ['safety_measures'] });
     toast.success('Medida duplicada');
   };
 
@@ -65,7 +68,7 @@ export default function Medidas() {
     );
   };
 
-  const save = () => {
+  const save = async () => {
     if (!name.trim()) return;
     if (selectedRiskIds.length === 0) {
       toast.error('Selecione ao menos um risco');
@@ -77,17 +80,17 @@ export default function Medidas() {
       const editItem = measures.items.find(m => m.id === editing);
       if (editItem) {
         const oldEntries = measures.items.filter(m => m.name === editItem.name);
-        oldEntries.forEach(m => safetyMeasuresStore.remove(m.id));
+        for (const m of oldEntries) {
+          await safetyMeasuresStore.remove(m.id);
+        }
       }
-      selectedRiskIds.forEach(riskId => {
-        safetyMeasuresStore.add({ name: name.trim(), riskId } as any);
-      });
-    } else {
-      selectedRiskIds.forEach(riskId => {
-        safetyMeasuresStore.add({ name: name.trim(), riskId } as any);
-      });
     }
-    measures.refresh();
+
+    for (const riskId of selectedRiskIds) {
+      await safetyMeasuresStore.add({ name: name.trim(), riskId } as any);
+    }
+
+    qc.invalidateQueries({ queryKey: ['safety_measures'] });
     resetForm();
     toast.success('Medida salva');
   };
@@ -200,10 +203,12 @@ export default function Medidas() {
                 <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => startEdit(item)}>
                   <Pencil className="h-4 w-4" />
                 </Button>
-                <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => {
+                <Button size="icon" variant="ghost" className="h-9 w-9" onClick={async () => {
                   // Delete all entries with this name
-                  measures.items.filter(m => m.name === item.name).forEach(m => safetyMeasuresStore.remove(m.id));
-                  measures.refresh();
+                  for (const m of measures.items.filter(m => m.name === item.name)) {
+                    await safetyMeasuresStore.remove(m.id);
+                  }
+                  qc.invalidateQueries({ queryKey: ['safety_measures'] });
                   toast.success('Medida excluída');
                 }}>
                   <Trash2 className="h-4 w-4 text-destructive" />

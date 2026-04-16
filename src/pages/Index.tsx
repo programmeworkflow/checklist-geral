@@ -1,17 +1,15 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Settings, ClipboardList, Plus, ArrowRight, Building2, Calendar } from 'lucide-react';
 import { checklistsStore, companiesStore, sectorsStore } from '@/lib/storage';
-import { seedDefaults } from '@/lib/storage';
 import logoColorida from '@/assets/logo-colorida.png';
-
-seedDefaults();
 
 const Index = () => {
   const navigate = useNavigate();
-  const checklists = checklistsStore.getAll();
-  const companies = companiesStore.getAll();
-  const sectors = sectorsStore.getAll();
+  const { data: checklists = [] } = useQuery({ queryKey: ['checklists'], queryFn: () => checklistsStore.getAll() });
+  const { data: companies = [] } = useQuery({ queryKey: ['companies'], queryFn: () => companiesStore.getAll() });
+  const { data: sectors = [] } = useQuery({ queryKey: ['sectors'], queryFn: () => sectorsStore.getAll() });
 
   return (
     <div className="min-h-screen bg-background">

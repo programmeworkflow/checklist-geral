@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -46,11 +47,7 @@ const Checklist = () => {
   const [measureStatuses, setMeasureStatuses] = useState<Record<string, MeasureStatus>>({});
   const [measureNotes, setMeasureNotes] = useState<Record<string, string>>({});
   const [activeRiskId, setActiveRiskId] = useState<string | null>(null);
-  const [openCategoryId, setOpenCategoryId] = useState<string | null>(() => {
-    const cats = riskCategoriesStore.getAll();
-    const chemical = cats.find(c => c.type === 'chemical');
-    return chemical?.id || cats[0]?.id || null;
-  });
+  const [openCategoryId, setOpenCategoryId] = useState<string | null>(null);
 
   // Risk matrix
   const [riskSeverity, setRiskSeverity] = useState<Record<string, string>>({});
@@ -71,7 +68,8 @@ const Checklist = () => {
   const isDuplicate = window.location.search.includes('duplicate=true');
   useEffect(() => {
     if (!duplicateId) return;
-    const source = checklistsStore.get(duplicateId);
+    (async () => {
+    const source = await checklistsStore.get(duplicateId);
     if (!source) return;
 
     // If duplicating to a different company, use URL param
@@ -135,6 +133,7 @@ const Checklist = () => {
     if (!isDuplicate) {
       setShowReport(true);
     }
+    })();
   }, [duplicateId]);
 
   // Handle URL params from empresa → checklist flow
@@ -180,17 +179,27 @@ const Checklist = () => {
   const openCamera = (key: string) => { activeAttachKey.current = key; cameraInputRef.current?.click(); setShowAttachMenu(null); };
   const openGallery = (key: string) => { activeAttachKey.current = key; fileInputRef.current?.click(); setShowAttachMenu(null); };
 
-  const companies = companiesStore.getAll();
-  const allSectors = sectorsStore.getAll();
-  const allFunctions = functionsStore.getAll();
-  const riskCategories = riskCategoriesStore.getAll();
-  const risks = risksStore.getAll();
-  const epis = episStore.getAll();
-  const trainings = trainingsStore.getAll();
-  const allExams = examsStore.getAll();
-  const allMeasures = safetyMeasuresStore.getAll();
-  const allBlockFields = blockFieldsStore.getAll();
-  const blocks = checklistBlocksStore.getAll().filter(b => b.visible !== false).sort((a, b) => a.order - b.order);
+  const qc = useQueryClient();
+  const { data: companies = [] } = useQuery({ queryKey: ['companies'], queryFn: () => companiesStore.getAll() });
+  const { data: allSectors = [] } = useQuery({ queryKey: ['sectors'], queryFn: () => sectorsStore.getAll() });
+  const { data: allFunctions = [] } = useQuery({ queryKey: ['functions'], queryFn: () => functionsStore.getAll() });
+  const { data: riskCategories = [] } = useQuery({ queryKey: ['risk_categories'], queryFn: () => riskCategoriesStore.getAll() });
+  const { data: risks = [] } = useQuery({ queryKey: ['risks'], queryFn: () => risksStore.getAll() });
+  const { data: epis = [] } = useQuery({ queryKey: ['epis'], queryFn: () => episStore.getAll() });
+  const { data: trainings = [] } = useQuery({ queryKey: ['trainings'], queryFn: () => trainingsStore.getAll() });
+  const { data: allExams = [] } = useQuery({ queryKey: ['exams'], queryFn: () => examsStore.getAll() });
+  const { data: allMeasures = [] } = useQuery({ queryKey: ['safety_measures'], queryFn: () => safetyMeasuresStore.getAll() });
+  const { data: allBlockFields = [] } = useQuery({ queryKey: ['block_fields'], queryFn: () => blockFieldsStore.getAll() });
+  const { data: allBlocks = [] } = useQuery({ queryKey: ['checklist_blocks'], queryFn: () => checklistBlocksStore.getAll() });
+  const blocks = useMemo(() => allBlocks.filter(b => b.visible !== false).sort((a, b) => a.order - b.order), [allBlocks]);
+
+  // Initialize openCategoryId once riskCategories load
+  useEffect(() => {
+    if (riskCategories.length > 0 && openCategoryId === null) {
+      const chemical = riskCategories.find(c => c.type === 'chemical');
+      setOpenCategoryId(chemical?.id || riskCategories[0]?.id || null);
+    }
+  }, [riskCategories]);
 
   const companySectors = useMemo(() => allSectors.filter(s => s.companyId === companyId), [companyId, allSectors]);
   const sectorFunctions = useMemo(() => allFunctions.filter(f => f.sectorId === sectorId), [sectorId, allFunctions]);
@@ -232,10 +241,11 @@ const Checklist = () => {
     });
   };
 
-  const handleQuickAddMeasure = (riskId: string) => {
+  const handleQuickAddMeasure = async (riskId: string) => {
     const name = newMeasureName[riskId]?.trim();
     if (!name) return;
-    safetyMeasuresStore.add({ name, riskId } as any);
+    await safetyMeasuresStore.add({ name, riskId } as any);
+    qc.invalidateQueries({ queryKey: ['safety_measures'] });
     setNewMeasureName(prev => ({ ...prev, [riskId]: '' }));
     setShowNewMeasure(null);
     toast.success('Medida adicionada');
@@ -246,7 +256,7 @@ const Checklist = () => {
     [selectedRisks]
   );
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Validate fonte geradora (required)
     const missingSource = selectedRiskIds.find(id => !riskSources[id]?.trim());
     if (missingSource) {
@@ -283,7 +293,7 @@ const Checklist = () => {
       return;
     }
 
-    checklistsStore.add({
+    await checklistsStore.add({
       companyId,
       sectorId,
       functionIds: selectedFunctionIds,
@@ -309,6 +319,7 @@ const Checklist = () => {
       riskSources,
       customActions: customActions.filter(a => a.trim()),
     } as any);
+    qc.invalidateQueries({ queryKey: ['checklists'] });
     toast.success('Checklist salvo com sucesso!');
     setShowReport(true);
   };

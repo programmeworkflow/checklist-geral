@@ -67,52 +67,57 @@ export function ExcelImport({ companyId, companyName, onComplete }: ExcelImportP
     e.target.value = '';
   };
 
-  const doImport = () => {
+  const doImport = async () => {
     if (!preview) return;
     setImporting(true);
 
-    const validRows = preview.filter(r => !r.error);
-    const existingSectors = sectorsStore.getAll();
-    const existingFunctions = functionsStore.getAll();
+    try {
+      const validRows = preview.filter(r => !r.error);
+      const existingSectors = await sectorsStore.getAll();
+      const existingFunctions = await functionsStore.getAll();
 
-    let sectorsCreated = 0;
-    let functionsCreated = 0;
-    const sectorMap = new Map<string, string>();
+      let sectorsCreated = 0;
+      let functionsCreated = 0;
+      const sectorMap = new Map<string, string>();
 
-    // Map existing sectors for this company
-    existingSectors
-      .filter(s => s.companyId === companyId)
-      .forEach(s => sectorMap.set(s.name.toLowerCase(), s.id));
+      // Map existing sectors for this company
+      existingSectors
+        .filter(s => s.companyId === companyId)
+        .forEach(s => sectorMap.set(s.name.toLowerCase(), s.id));
 
-    for (const r of validRows) {
-      // Get or create sector
-      let sectorId = sectorMap.get(r.setor.toLowerCase());
-      if (!sectorId) {
-        const newSector = sectorsStore.add({ name: r.setor, companyId } as any);
-        sectorId = newSector.id;
-        sectorMap.set(r.setor.toLowerCase(), sectorId);
-        sectorsCreated++;
+      for (const r of validRows) {
+        // Get or create sector
+        let sectorId = sectorMap.get(r.setor.toLowerCase());
+        if (!sectorId) {
+          const newSector = await sectorsStore.add({ name: r.setor, companyId } as any);
+          sectorId = newSector.id;
+          sectorMap.set(r.setor.toLowerCase(), sectorId);
+          sectorsCreated++;
+        }
+
+        // Check duplicate function
+        const exists = existingFunctions.some(
+          f => f.sectorId === sectorId && f.name.toLowerCase() === r.cargo.toLowerCase()
+        );
+        if (!exists) {
+          await functionsStore.add({ name: r.cargo, sectorId } as any);
+          functionsCreated++;
+        }
       }
 
-      // Check duplicate function
-      const exists = existingFunctions.some(
-        f => f.sectorId === sectorId && f.name.toLowerCase() === r.cargo.toLowerCase()
+      const errors = preview.filter(r => r.error);
+      setPreview(null);
+
+      toast.success(
+        `Importação concluída: ${sectorsCreated} setor(es) e ${functionsCreated} cargo(s) criados.` +
+        (errors.length > 0 ? ` ${errors.length} linha(s) ignorada(s).` : '')
       );
-      if (!exists) {
-        functionsStore.add({ name: r.cargo, sectorId } as any);
-        functionsCreated++;
-      }
+      onComplete();
+    } catch (err) {
+      toast.error('Erro ao importar. Tente novamente.');
+    } finally {
+      setImporting(false);
     }
-
-    const errors = preview.filter(r => r.error);
-    setImporting(false);
-    setPreview(null);
-
-    toast.success(
-      `Importação concluída: ${sectorsCreated} setor(es) e ${functionsCreated} cargo(s) criados.` +
-      (errors.length > 0 ? ` ${errors.length} linha(s) ignorada(s).` : '')
-    );
-    onComplete();
   };
 
   const errors = preview?.filter(r => r.error) || [];

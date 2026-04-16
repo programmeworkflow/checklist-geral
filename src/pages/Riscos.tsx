@@ -20,8 +20,8 @@ export default function Riscos() {
 
   const categoryOptions = riskCategories.items.map(c => ({ value: c.id, label: c.name }));
 
-  const makeReorder = <T extends { id: string }>(store: { setAll: (items: T[]) => void }, refresh: () => void) => {
-    return (reordered: T[]) => { store.setAll(reordered); refresh(); };
+  const makeReorder = <T extends { id: string }>(store: { setAll: (items: T[]) => Promise<void> }, refresh: () => void) => {
+    return async (reordered: T[]) => { await store.setAll(reordered); refresh(); };
   };
 
   const filteredRisks = risks.items.filter(r => {
@@ -31,7 +31,7 @@ export default function Riscos() {
     return r.name.toLowerCase().includes(q) || (cat?.name || '').toLowerCase().includes(q);
   });
 
-  const handleRiskImport = (rows: Record<string, string>[]) => {
+  const handleRiskImport = async (rows: Record<string, string>[]) => {
     let created = 0;
     let skipped = 0;
     for (const row of rows) {
@@ -43,7 +43,7 @@ export default function Riscos() {
       // Check duplicate
       const exists = risks.items.some(r => r.categoryId === cat.id && r.name.toLowerCase() === riskName.toLowerCase());
       if (exists) { skipped++; continue; }
-      risksStore.add({ name: riskName, categoryId: cat.id, source: '', exposureType: '', customFields: {} } as any);
+      await risksStore.add({ name: riskName, categoryId: cat.id, source: '', exposureType: '', customFields: {} } as any);
       created++;
     }
     risks.refresh();

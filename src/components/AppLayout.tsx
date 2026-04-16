@@ -7,6 +7,7 @@ import {
   FileText, Sun, Moon, ArrowLeft, X, PanelLeftClose, PanelLeft,
   LucideIcon,
 } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { navItemsStore } from '@/lib/storage';
@@ -45,21 +46,27 @@ const CADASTRO_KEYS = ['riscos', 'exames', 'medidas', 'profissionais'];
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [navItems, setNavItems] = useState(() => {
-    const items = navItemsStore.getAll();
-    const examesItem = items.find(i => i.key === 'exames');
-    if (examesItem && !examesItem.visible) {
-      navItemsStore.update(examesItem.id, { visible: true });
-      return navItemsStore.getAll();
-    }
-    if (!examesItem) {
-      navItemsStore.add({ key: 'exames', label: 'Exames', visible: true, order: 5 } as any);
-      return navItemsStore.getAll();
-    }
-    return items;
+
+  const { data: navItems = [] } = useQuery({
+    queryKey: ['nav_items'],
+    queryFn: async () => {
+      let items = await navItemsStore.getAll();
+      const examesItem = items.find(i => i.key === 'exames');
+      if (examesItem && !examesItem.visible) {
+        await navItemsStore.update(examesItem.id, { visible: true });
+        items = await navItemsStore.getAll();
+      }
+      if (!examesItem) {
+        await navItemsStore.add({ key: 'exames', label: 'Exames', visible: true, order: 5 } as any);
+        items = await navItemsStore.getAll();
+      }
+      return items;
+    },
   });
+
   const [dark, setDark] = useState(() => localStorage.getItem('theme') === 'dark');
   const [cadastroOpen, setCadastroOpen] = useState(() =>
     CADASTRO_KEYS.some(k => window.location.pathname.startsWith(`/${k}`))
@@ -71,7 +78,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   }, [dark]);
 
   useEffect(() => {
-    setNavItems(navItemsStore.getAll());
+    qc.invalidateQueries({ queryKey: ['nav_items'] });
     if (CADASTRO_KEYS.some(k => location.pathname.startsWith(`/${k}`))) setCadastroOpen(true);
   }, [location.pathname]);
 

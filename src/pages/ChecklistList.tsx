@@ -7,15 +7,22 @@ import { toast } from 'sonner';
 import { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { SearchInput } from '@/components/SearchInput';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 export default function ChecklistList() {
   const navigate = useNavigate();
-  const [, setRefresh] = useState(0);
+  const qc = useQueryClient();
   const [search, setSearch] = useState('');
-  const checklists = checklistsStore.getAll();
-  const companies = companiesStore.getAll();
-  const sectors = sectorsStore.getAll();
-  const fns = functionsStore.getAll();
+
+  const { data: checklists = [] } = useQuery({ queryKey: ['checklists'], queryFn: () => checklistsStore.getAll() });
+  const { data: companies = [] } = useQuery({ queryKey: ['companies'], queryFn: () => companiesStore.getAll() });
+  const { data: sectors = [] } = useQuery({ queryKey: ['sectors'], queryFn: () => sectorsStore.getAll() });
+  const { data: fns = [] } = useQuery({ queryKey: ['job_functions'], queryFn: () => functionsStore.getAll() });
+
+  const removeMut = useMutation({
+    mutationFn: (id: string) => checklistsStore.remove(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['checklists'] }),
+  });
 
   // Duplicate dialog state
   const [duplicateId, setDuplicateId] = useState<string | null>(null);
@@ -23,14 +30,14 @@ export default function ChecklistList() {
 
   const handleDelete = (id: string) => {
     if (!window.confirm('Excluir este checklist?')) return;
-    checklistsStore.remove(id);
-    setRefresh(n => n + 1);
-    toast.success('Checklist excluído.');
+    removeMut.mutate(id, {
+      onSuccess: () => toast.success('Checklist excluído.'),
+    });
   };
 
-  const handleDuplicate = () => {
+  const handleDuplicate = async () => {
     if (!duplicateId) return;
-    const source = checklistsStore.get(duplicateId);
+    const source = await checklistsStore.get(duplicateId);
     if (!source) return;
     // Navigate to duplicate with target company
     const targetCompany = dupCompanyId || source.companyId;

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useStore } from '@/hooks/useStore';
 import { examsStore, risksStore, riskCategoriesStore } from '@/lib/storage';
 import type { OccupationalExam } from '@/lib/storage';
@@ -22,6 +23,7 @@ const EXAM_TYPES = [
 ];
 
 export default function Exames() {
+  const qc = useQueryClient();
   const exams = useStore(examsStore);
   const risks = useStore(risksStore);
   const categories = useStore(riskCategoriesStore);
@@ -60,8 +62,9 @@ export default function Exames() {
     setAdding(false);
   };
 
-  const handleDuplicate = (item: OccupationalExam) => {
-    exams.add({ name: item.name + ' (cópia)', riskId: item.riskId, admissional: item.admissional, demissional: item.demissional, periodico: item.periodico, retornoTrabalho: item.retornoTrabalho, mudanca: item.mudanca } as any);
+  const handleDuplicate = async (item: OccupationalExam) => {
+    await examsStore.add({ name: item.name + ' (cópia)', riskId: item.riskId, admissional: item.admissional, demissional: item.demissional, periodico: item.periodico, retornoTrabalho: item.retornoTrabalho, mudanca: item.mudanca } as any);
+    qc.invalidateQueries({ queryKey: ['occupational_exams'] });
     toast.success('Exame duplicado');
   };
 
@@ -71,7 +74,7 @@ export default function Exames() {
     );
   };
 
-  const save = () => {
+  const save = async () => {
     if (!name.trim()) return;
     if (selectedRiskIds.length === 0) {
       toast.error('Selecione ao menos um risco');
@@ -82,15 +85,17 @@ export default function Exames() {
       const editItem = exams.items.find(e => e.id === editing);
       if (editItem) {
         const oldEntries = exams.items.filter(e => e.name === editItem.name);
-        oldEntries.forEach(e => examsStore.remove(e.id));
+        for (const e of oldEntries) {
+          await examsStore.remove(e.id);
+        }
       }
     }
 
-    selectedRiskIds.forEach(riskId => {
-      examsStore.add({ name: name.trim(), riskId, esocialCode: esocialCode.trim(), ...types, periodicidade: types.periodico ? periodicidade : undefined } as any);
-    });
+    for (const riskId of selectedRiskIds) {
+      await examsStore.add({ name: name.trim(), riskId, esocialCode: esocialCode.trim(), ...types, periodicidade: types.periodico ? periodicidade : undefined } as any);
+    }
 
-    exams.refresh();
+    qc.invalidateQueries({ queryKey: ['occupational_exams'] });
     resetForm();
     toast.success('Exame salvo');
   };
@@ -115,7 +120,7 @@ export default function Exames() {
     return e.name.toLowerCase().includes(q) || ((e as any).esocialCode || '').toLowerCase().includes(q);
   });
 
-  const handleExamImport = (rows: Record<string, string>[]) => {
+  const handleExamImport = async (rows: Record<string, string>[]) => {
     let created = 0;
     let skipped = 0;
     // Get all risk IDs to link exams to (link to first risk by default)
@@ -127,11 +132,11 @@ export default function Exames() {
       if (exists) { skipped++; continue; }
       // Add exam linked to first available risk (user can edit later)
       if (allRisks.length > 0) {
-        examsStore.add({ name: examName, esocialCode: code, riskId: allRisks[0].id, admissional: false, demissional: false, periodico: true, retornoTrabalho: false, mudanca: false } as any);
+        await examsStore.add({ name: examName, esocialCode: code, riskId: allRisks[0].id, admissional: false, demissional: false, periodico: true, retornoTrabalho: false, mudanca: false } as any);
         created++;
       }
     }
-    exams.refresh();
+    qc.invalidateQueries({ queryKey: ['occupational_exams'] });
     return { created, skipped };
   };
 
@@ -259,9 +264,11 @@ export default function Exames() {
                 <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => startEdit(item)}>
                   <Pencil className="h-4 w-4" />
                 </Button>
-                <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => {
-                  exams.items.filter(e => e.name === item.name).forEach(e => examsStore.remove(e.id));
-                  exams.refresh();
+                <Button size="icon" variant="ghost" className="h-9 w-9" onClick={async () => {
+                  for (const e of exams.items.filter(e => e.name === item.name)) {
+                    await examsStore.remove(e.id);
+                  }
+                  qc.invalidateQueries({ queryKey: ['occupational_exams'] });
                   toast.success('Exame excluído');
                 }}>
                   <Trash2 className="h-4 w-4 text-destructive" />

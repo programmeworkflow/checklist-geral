@@ -144,11 +144,11 @@ const Settings = () => {
   };
 
   // SAVE: persist all drafts to stores
-  const handleSave = () => {
-    navItemsStore.setAll(draftNav);
-    checklistBlocksStore.setAll(draftBlocks);
-    blockFieldsStore.setAll(draftFields);
-    reportBlocksStore.setAll(draftReportBlocks);
+  const handleSave = async () => {
+    await navItemsStore.setAll(draftNav);
+    await checklistBlocksStore.setAll(draftBlocks);
+    await blockFieldsStore.setAll(draftFields);
+    await reportBlocksStore.setAll(draftReportBlocks);
     nav.refresh();
     blocks.refresh();
     fields.refresh();

@@ -1,30 +1,40 @@
-import { useState, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { CrudStore } from '@/lib/storage';
 
-export function useStore<T extends { id: string }>(store: {
-  getAll: () => T[];
-  add: (item: Omit<T, 'id'>) => T;
-  update: (id: string, data: Partial<T>) => T;
-  remove: (id: string) => void;
-}) {
-  const [items, setItems] = useState<T[]>(store.getAll());
+export function useStore<T extends { id: string }>(
+  store: CrudStore<T>,
+  queryKey?: string
+) {
+  const key = queryKey || store.table;
+  const qc = useQueryClient();
 
-  const refresh = useCallback(() => setItems(store.getAll()), [store]);
+  const { data: items = [], isLoading } = useQuery({
+    queryKey: [key],
+    queryFn: () => store.getAll(),
+    staleTime: 30_000, // 30s cache
+  });
 
-  const add = useCallback((item: Omit<T, 'id'>) => {
-    const newItem = store.add(item);
-    refresh();
-    return newItem;
-  }, [store, refresh]);
+  const addMut = useMutation({
+    mutationFn: (item: Omit<T, 'id'>) => store.add(item),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [key] }),
+  });
 
-  const update = useCallback((id: string, data: Partial<T>) => {
-    store.update(id, data);
-    refresh();
-  }, [store, refresh]);
+  const updateMut = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<T> }) => store.update(id, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [key] }),
+  });
 
-  const remove = useCallback((id: string) => {
-    store.remove(id);
-    refresh();
-  }, [store, refresh]);
+  const removeMut = useMutation({
+    mutationFn: (id: string) => store.remove(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [key] }),
+  });
 
-  return { items, add, update, remove, refresh };
+  return {
+    items,
+    isLoading,
+    add: (item: Omit<T, 'id'>) => addMut.mutateAsync(item),
+    update: (id: string, data: Partial<T>) => updateMut.mutateAsync({ id, data }),
+    remove: (id: string) => removeMut.mutateAsync(id),
+    refresh: () => qc.invalidateQueries({ queryKey: [key] }),
+  };
 }

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Plus, Trash2, CheckCircle2, XCircle, FileText, Stethoscope, AlertTriangle, Shield, Building2, ClipboardList, ShieldAlert, GraduationCap, MessageSquare, User } from 'lucide-react';
 import { SEVERITY_OPTIONS, PROBABILITY_OPTIONS } from './RiskMatrixHelp';
 import { getRiskColor } from '@/lib/riskColors';
+import { useQuery } from '@tanstack/react-query';
 import { reportBlocksStore, professionalsStore } from '@/lib/storage';
 import type { Risk, RiskCategory, SafetyMeasure, OccupationalExam, JobFunction, EPI, Training, ChecklistBlock, BlockField } from '@/lib/storage';
 
@@ -116,10 +117,19 @@ export function ChecklistReport(props: ReportProps) {
   const { epiStatuses = {}, trainingStatuses = {}, employeePhoto } = props;
 
   // Get professionals
-  const professionals = professionalsStore.getAll();
+  const { data: professionals = [] } = useQuery({
+    queryKey: ['professionals'],
+    queryFn: () => professionalsStore.getAll(),
+    staleTime: 30_000,
+  });
 
   // Report block ordering and visibility
-  const rBlocks = reportBlocksStore.getAll().sort((a, b) => a.order - b.order);
+  const { data: rBlocksRaw = [] } = useQuery({
+    queryKey: ['reportBlocks'],
+    queryFn: () => reportBlocksStore.getAll(),
+    staleTime: 30_000,
+  });
+  const rBlocks = [...rBlocksRaw].sort((a, b) => a.order - b.order);
 
   // Header: clean, no black bar
   const renderHeader = () => (

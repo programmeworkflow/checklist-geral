@@ -2,6 +2,7 @@ import { useStore } from '@/hooks/useStore';
 import { companiesStore, sectorsStore, functionsStore, checklistsStore, type DocType } from '@/lib/storage';
 import { useNavigate } from 'react-router-dom';
 import { useState, useMemo, useRef, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -97,7 +98,7 @@ export default function Empresas() {
   const logoInputRef = useRef<HTMLInputElement>(null);
   const editLogoInputRef = useRef<HTMLInputElement>(null);
 
-  const checklists = checklistsStore.getAll();
+  const { data: checklists = [] } = useQuery({ queryKey: ['checklists'], queryFn: () => checklistsStore.getAll() });
 
   const filteredCompanies = useMemo(() => {
     if (!search.trim()) return companies.items;

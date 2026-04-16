@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import {
   ClipboardList, Building2, AlertTriangle, CheckCircle2, XCircle, Plus,
@@ -9,10 +10,7 @@ import {
   checklistsStore, companiesStore, risksStore, riskCategoriesStore,
   safetyMeasuresStore,
 } from '@/lib/storage';
-import { seedDefaults } from '@/lib/storage';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-
-seedDefaults();
 
 const PIE_COLORS = ['hsl(148, 70%, 36%)', 'hsl(0, 72%, 51%)'];
 const CATEGORY_COLORS: Record<string, string> = {
@@ -21,11 +19,11 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export default function Dashboard() {
-  const checklists = checklistsStore.getAll();
-  const companies = companiesStore.getAll();
-  const risks = risksStore.getAll();
-  const categories = riskCategoriesStore.getAll();
-  const measures = safetyMeasuresStore.getAll();
+  const { data: checklists = [] } = useQuery({ queryKey: ['checklists'], queryFn: () => checklistsStore.getAll() });
+  const { data: companies = [] } = useQuery({ queryKey: ['companies'], queryFn: () => companiesStore.getAll() });
+  const { data: risks = [] } = useQuery({ queryKey: ['risks'], queryFn: () => risksStore.getAll() });
+  const { data: categories = [] } = useQuery({ queryKey: ['riskCategories'], queryFn: () => riskCategoriesStore.getAll() });
+  const { data: measures = [] } = useQuery({ queryKey: ['safetyMeasures'], queryFn: () => safetyMeasuresStore.getAll() });
 
   const stats = useMemo(() => {
     let conformities = 0, nonConformities = 0;
