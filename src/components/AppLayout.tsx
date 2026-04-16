@@ -53,15 +53,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { data: navItems = [] } = useQuery({
     queryKey: ['nav_items'],
     queryFn: async () => {
-      let items = await navItemsStore.getAll();
-      const examesItem = items.find(i => i.key === 'exames');
-      if (examesItem && !examesItem.visible) {
-        await navItemsStore.update(examesItem.id, { visible: true });
-        items = await navItemsStore.getAll();
-      }
-      if (!examesItem) {
-        await navItemsStore.add({ key: 'exames', label: 'Exames', visible: true, order: 5 } as any);
-        items = await navItemsStore.getAll();
+      const items = await navItemsStore.getAll();
+      // Only fix exames visibility if nav was already seeded
+      if (items.length > 1) {
+        const examesItem = items.find(i => i.key === 'exames');
+        if (examesItem && !examesItem.visible) {
+          await navItemsStore.update(examesItem.id, { visible: true });
+          return navItemsStore.getAll();
+        }
       }
       return items;
     },
