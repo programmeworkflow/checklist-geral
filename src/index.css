@@ -1,94 +1,106 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* MedWork brand: Blue #0A7BBF + Green #1FAD5F */
-    --background: 210 25% 97%;
-    --foreground: 215 25% 12%;
+    /* ============================================
+       VISTEC Design System
+       Based on MedWork logo colors:
+       - Teal:  #0C97C4 (stethoscope circle)
+       - Blue:  #1A6FB5 (silhouette)
+       - Green: #1B9B4E (safety helmet, "WORK")
+       ============================================ */
+
+    --background: 200 20% 97%;
+    --foreground: 210 30% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 215 25% 12%;
+    --card-foreground: 210 30% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 12%;
+    --popover-foreground: 210 30% 12%;
 
-    --primary: 200 85% 40%;
+    /* Teal from logo stethoscope */
+    --primary: 195 88% 41%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 205 25% 92%;
-    --secondary-foreground: 215 25% 20%;
+    --secondary: 200 18% 93%;
+    --secondary-foreground: 210 25% 22%;
 
-    --muted: 210 20% 94%;
-    --muted-foreground: 215 14% 46%;
+    --muted: 200 14% 94%;
+    --muted-foreground: 210 12% 50%;
 
-    --accent: 150 65% 38%;
+    /* Green from logo helmet */
+    --accent: 148 70% 36%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 22% 88%;
-    --input: 214 22% 88%;
-    --ring: 200 85% 40%;
+    --border: 200 18% 89%;
+    --input: 200 18% 89%;
+    --ring: 195 88% 41%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 210 30% 10%;
-    --sidebar-foreground: 210 10% 82%;
-    --sidebar-primary: 200 85% 50%;
+    /* Sidebar: deep slate with blue undertone */
+    --sidebar-background: 215 35% 10%;
+    --sidebar-foreground: 210 15% 78%;
+    --sidebar-primary: 195 85% 52%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 25% 16%;
+    --sidebar-accent: 215 28% 16%;
     --sidebar-accent-foreground: 0 0% 92%;
-    --sidebar-border: 210 20% 18%;
-    --sidebar-ring: 200 85% 50%;
+    --sidebar-border: 215 25% 16%;
+    --sidebar-ring: 195 85% 52%;
 
-    --success: 150 65% 38%;
+    --success: 148 70% 36%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
   }
 
   .dark {
-    --background: 215 28% 9%;
-    --foreground: 210 20% 95%;
+    --background: 215 32% 8%;
+    --foreground: 200 15% 94%;
 
-    --card: 215 25% 12%;
-    --card-foreground: 210 20% 95%;
+    --card: 215 28% 11%;
+    --card-foreground: 200 15% 94%;
 
-    --popover: 215 25% 12%;
-    --popover-foreground: 210 20% 95%;
+    --popover: 215 28% 11%;
+    --popover-foreground: 200 15% 94%;
 
-    --primary: 200 85% 50%;
+    --primary: 195 85% 48%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 215 20% 18%;
-    --secondary-foreground: 210 20% 88%;
+    --secondary: 215 22% 17%;
+    --secondary-foreground: 200 15% 88%;
 
-    --muted: 215 18% 16%;
-    --muted-foreground: 215 14% 55%;
+    --muted: 215 20% 15%;
+    --muted-foreground: 210 12% 52%;
 
-    --accent: 150 65% 42%;
+    --accent: 148 65% 40%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 215 18% 20%;
-    --input: 215 18% 20%;
-    --ring: 200 85% 50%;
+    --border: 215 22% 18%;
+    --input: 215 22% 18%;
+    --ring: 195 85% 48%;
 
-    --sidebar-background: 215 32% 7%;
-    --sidebar-foreground: 210 10% 80%;
-    --sidebar-primary: 200 85% 50%;
+    --sidebar-background: 215 38% 6%;
+    --sidebar-foreground: 210 12% 75%;
+    --sidebar-primary: 195 85% 52%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 25% 14%;
+    --sidebar-accent: 215 30% 13%;
     --sidebar-accent-foreground: 0 0% 90%;
-    --sidebar-border: 215 20% 14%;
-    --sidebar-ring: 200 85% 50%;
+    --sidebar-border: 215 25% 13%;
+    --sidebar-ring: 195 85% 52%;
 
-    --success: 150 65% 42%;
+    --success: 148 65% 40%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
@@ -99,106 +111,125 @@
   * {
     @apply border-border;
   }
+  html {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
   body {
     @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'cv11', 'ss01';
   }
 }
 
-/* ===== 3D Interactive Buttons ===== */
+/* ===================================================
+   COMPONENT UTILITIES
+   =================================================== */
 @layer components {
+
+  /* ---- 3D Buttons ---- */
   .btn-3d {
-    @apply relative overflow-hidden transition-all duration-150 active:translate-y-0.5;
+    @apply relative transition-all duration-150;
     box-shadow:
-      0 2px 0 0 hsl(var(--primary) / 0.5),
-      0 4px 8px -2px hsl(var(--primary) / 0.25);
+      0 2px 0 0 hsl(195 88% 32%),
+      0 4px 10px -2px hsl(195 88% 41% / 0.3);
   }
   .btn-3d:hover {
-    box-shadow:
-      0 3px 0 0 hsl(var(--primary) / 0.5),
-      0 6px 12px -2px hsl(var(--primary) / 0.3);
     transform: translateY(-1px);
+    box-shadow:
+      0 3px 0 0 hsl(195 88% 32%),
+      0 8px 16px -3px hsl(195 88% 41% / 0.35);
   }
   .btn-3d:active {
+    transform: translateY(1px);
     box-shadow:
-      0 1px 0 0 hsl(var(--primary) / 0.5),
-      0 2px 4px -1px hsl(var(--primary) / 0.2);
+      0 0 0 0 hsl(195 88% 32%),
+      0 1px 4px 0 hsl(195 88% 41% / 0.2);
   }
 
   .btn-3d-accent {
-    @apply relative overflow-hidden transition-all duration-150 active:translate-y-0.5;
+    @apply relative transition-all duration-150;
     box-shadow:
-      0 2px 0 0 hsl(var(--accent) / 0.5),
-      0 4px 8px -2px hsl(var(--accent) / 0.25);
+      0 2px 0 0 hsl(148 70% 26%),
+      0 4px 10px -2px hsl(148 70% 36% / 0.3);
   }
   .btn-3d-accent:hover {
-    box-shadow:
-      0 3px 0 0 hsl(var(--accent) / 0.5),
-      0 6px 12px -2px hsl(var(--accent) / 0.3);
     transform: translateY(-1px);
+    box-shadow:
+      0 3px 0 0 hsl(148 70% 26%),
+      0 8px 16px -3px hsl(148 70% 36% / 0.35);
   }
   .btn-3d-accent:active {
-    box-shadow:
-      0 1px 0 0 hsl(var(--accent) / 0.5),
-      0 2px 4px -1px hsl(var(--accent) / 0.2);
+    transform: translateY(1px);
+    box-shadow: 0 0 0 0 hsl(148 70% 26%);
   }
 
-  /* Interactive card blocks */
+  /* ---- Interactive Cards ---- */
   .card-interactive {
-    @apply transition-all duration-200 cursor-pointer;
+    @apply transition-all duration-200;
     box-shadow:
-      0 1px 3px 0 rgb(0 0 0 / 0.06),
-      0 1px 2px -1px rgb(0 0 0 / 0.06);
+      0 1px 3px 0 rgb(0 0 0 / 0.05),
+      0 1px 2px -1px rgb(0 0 0 / 0.05);
   }
   .card-interactive:hover {
+    transform: translateY(-3px);
     box-shadow:
-      0 10px 25px -5px rgb(0 0 0 / 0.08),
-      0 4px 10px -3px rgb(0 0 0 / 0.04);
-    transform: translateY(-2px);
+      0 12px 28px -6px rgb(0 0 0 / 0.08),
+      0 4px 12px -4px rgb(0 0 0 / 0.04);
   }
   .card-interactive:active {
     transform: translateY(0);
-    box-shadow:
-      0 1px 2px 0 rgb(0 0 0 / 0.04);
   }
 
-  /* Glass effect */
+  /* ---- Glass card ---- */
   .glass {
-    @apply bg-white/80 dark:bg-white/5 backdrop-blur-md;
+    @apply backdrop-blur-xl;
+    background: rgba(255, 255, 255, 0.72);
+  }
+  .dark .glass {
+    background: rgba(30, 41, 59, 0.72);
   }
 
-  /* Gradient text */
+  /* ---- Gradient text ---- */
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(195 88% 41%), hsl(148 70% 36%));
   }
 
-  /* Scrollbar thin */
+  /* ---- Status pill badges ---- */
+  .badge-status {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide;
+  }
+
+  /* ---- Sidebar scrollbar ---- */
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: hsl(var(--sidebar-accent)) transparent;
+    scrollbar-color: hsl(215 28% 20%) transparent;
   }
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 4px;
+  .scrollbar-thin::-webkit-scrollbar { width: 3px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: hsl(215 28% 22%); border-radius: 99px; }
+
+  /* ---- Stat number animation ---- */
+  .stat-value {
+    @apply text-3xl font-extrabold tracking-tight leading-none;
+    font-variant-numeric: tabular-nums;
   }
-  .scrollbar-thin::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: hsl(var(--sidebar-accent));
-    border-radius: 99px;
+
+  /* ---- Active nav glow ---- */
+  .nav-active-glow {
+    box-shadow: inset 3px 0 0 0 hsl(195 85% 52%);
   }
 }
 
-/* ===== Mobile touch improvements ===== */
-@media (hover: none) {
+/* ===== Touch devices: disable hover transforms ===== */
+@media (hover: none) and (pointer: coarse) {
   .btn-3d:hover,
   .btn-3d-accent:hover,
   .card-interactive:hover {
-    transform: none;
-    box-shadow: none;
+    transform: none !important;
   }
 }
 
-/* ===== Print styles ===== */
+/* ===== Print ===== */
 @media print {
   [data-sidebar], nav, header, .sidebar-trigger, [data-mobile-nav] {
     display: none !important;
@@ -208,12 +239,8 @@
     margin: 0 !important;
     max-width: 100% !important;
   }
-  .print\:break-after-page {
-    break-after: page;
-    page-break-after: always;
-  }
   .card {
-    border: 1px solid #e5e7eb !important;
+    border: 1px solid #e2e8f0 !important;
     box-shadow: none !important;
   }
 }
