@@ -1,14 +1,14 @@
 import React from 'react';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, CheckCircle2, XCircle, FileText, Stethoscope, AlertTriangle, Shield, Building2, ClipboardList, ShieldAlert, GraduationCap, MessageSquare, User } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { SEVERITY_OPTIONS, PROBABILITY_OPTIONS } from './RiskMatrixHelp';
 import { getRiskColor } from '@/lib/riskColors';
 import { useQuery } from '@tanstack/react-query';
 import { reportBlocksStore, professionalsStore } from '@/lib/storage';
+import logoColorida from '@/assets/logo-colorida.png';
 import type { Risk, RiskCategory, SafetyMeasure, OccupationalExam, JobFunction, EPI, Training, ChecklistBlock, BlockField } from '@/lib/storage';
 
 type MeasureStatus = 0 | 1 | 2 | 3;
@@ -47,6 +47,16 @@ interface ReportProps {
   employeePhoto?: string;
 }
 
+// Style constants
+const S = {
+  page: 'bg-white text-gray-900',
+  sectionTitle: 'text-[15px] font-bold text-gray-900 mb-3 pb-2 border-b-2 flex items-center gap-2',
+  label: 'text-[11px] font-semibold text-gray-500 uppercase tracking-wider',
+  value: 'text-[13px] text-gray-900',
+  card: 'border border-gray-200 rounded-lg p-4 bg-white',
+  headerBar: 'bg-gradient-to-r from-[#0C97C4] to-[#1B9B4E]',
+};
+
 export function ChecklistReport(props: ReportProps) {
   const {
     companyName, companyLogo, sectorName, selectedFns, formData, observations,
@@ -58,6 +68,7 @@ export function ChecklistReport(props: ReportProps) {
     blocks, allBlockFields,
     customActions, onAddCustomAction, onUpdateCustomAction, onRemoveCustomAction,
   } = props;
+  const { epiStatuses = {}, trainingStatuses = {}, employeePhoto } = props;
 
   const conformities: { risk: Risk; measure: SafetyMeasure }[] = [];
   const nonConformities: { risk: Risk; measure: SafetyMeasure; note: string }[] = [];
@@ -76,243 +87,183 @@ export function ChecklistReport(props: ReportProps) {
 
   const examsByFunction = selectedFns.map(fn => {
     const examMap = new Map<string, OccupationalExam>();
-    // Always include "Clínico" exam
-    const clinicoExam: OccupationalExam = {
-      id: '__clinico__',
-      riskId: '',
-      name: 'Clínico',
-      esocialCode: '0295',
-      admissional: true,
-      demissional: true,
-      periodico: true,
-      periodicidade: 12,
-      retornoTrabalho: true,
-      mudanca: true,
-    };
-    examMap.set('Clínico', clinicoExam);
-
+    examMap.set('Clínico', { id: '__clinico__', riskId: '', name: 'Clínico', esocialCode: '0295', admissional: true, demissional: true, periodico: true, periodicidade: 12, retornoTrabalho: true, mudanca: true });
     selectedRiskIds.forEach(riskId => {
       allExams.filter(e => e.riskId === riskId).forEach(exam => {
         const existing = examMap.get(exam.name);
-        if (!existing) {
-          examMap.set(exam.name, { ...exam });
-        } else {
-          examMap.set(exam.name, {
-            ...existing,
-            admissional: existing.admissional || exam.admissional,
-            demissional: existing.demissional || exam.demissional,
-            periodico: existing.periodico || exam.periodico,
-            periodicidade: exam.periodico ? (exam as any).periodicidade || existing.periodicidade : existing.periodicidade,
-            retornoTrabalho: existing.retornoTrabalho || exam.retornoTrabalho,
-            mudanca: existing.mudanca || exam.mudanca,
-          });
-        }
+        if (!existing) { examMap.set(exam.name, { ...exam }); }
+        else { examMap.set(exam.name, { ...existing, admissional: existing.admissional || exam.admissional, demissional: existing.demissional || exam.demissional, periodico: existing.periodico || exam.periodico, periodicidade: exam.periodico ? (exam as any).periodicidade || existing.periodicidade : existing.periodicidade, retornoTrabalho: existing.retornoTrabalho || exam.retornoTrabalho, mudanca: existing.mudanca || exam.mudanca }); }
       });
     });
     return { fn, exams: Array.from(examMap.values()) };
   });
 
-  const getSevLabel = (v: string) => SEVERITY_OPTIONS.find(o => o.value === v)?.label || 'Não informado';
-  const getProbLabel = (v: string) => PROBABILITY_OPTIONS.find(o => o.value === v)?.label || 'Não informado';
-  const { epiStatuses = {}, trainingStatuses = {}, employeePhoto } = props;
+  const getSev = (v: string) => SEVERITY_OPTIONS.find(o => o.value === v)?.label || '—';
+  const getProb = (v: string) => PROBABILITY_OPTIONS.find(o => o.value === v)?.label || '—';
 
-  // Get professionals
-  const { data: professionals = [] } = useQuery({
-    queryKey: ['professionals'],
-    queryFn: () => professionalsStore.getAll(),
-    staleTime: 30_000,
-  });
-
-  // Report block ordering and visibility
-  const { data: rBlocksRaw = [] } = useQuery({
-    queryKey: ['reportBlocks'],
-    queryFn: () => reportBlocksStore.getAll(),
-    staleTime: 30_000,
-  });
+  const { data: professionals = [] } = useQuery({ queryKey: ['professionals'], queryFn: () => professionalsStore.getAll(), staleTime: 30_000 });
+  const { data: rBlocksRaw = [] } = useQuery({ queryKey: ['reportBlocks'], queryFn: () => reportBlocksStore.getAll(), staleTime: 30_000 });
   const rBlocks = [...rBlocksRaw].sort((a, b) => a.order - b.order);
 
-  // Header: clean, no black bar
+  // =============================================
+  // HEADER - Professional with MedWork logo
+  // =============================================
   const renderHeader = () => (
-    <div key="header" className="px-6 py-4 flex items-center gap-4 border-b border-border">
-      {companyLogo && (
-        <img src={companyLogo} alt="Logo" className="h-14 w-14 object-contain rounded border border-border p-1" />
-      )}
-      <div className="flex-1">
-        <h1 className="text-xl font-bold text-foreground">Entrevista de Percepção de Riscos</h1>
-        <h2 className="text-lg font-semibold text-foreground">{companyName}</h2>
-        <p className="text-sm text-muted-foreground">{sectorName} · {selectedFns.map(f => f.name).join(', ')}</p>
+    <div data-pdf-section="header" className="overflow-hidden rounded-lg border border-gray-200">
+      {/* Top gradient bar */}
+      <div className={`${S.headerBar} px-6 py-4 flex items-center gap-4`}>
+        <img src={logoColorida} alt="MedWork" className="h-12 bg-white rounded-lg p-1.5" />
+        <div className="text-white">
+          <h1 className="text-[18px] font-bold leading-tight">Entrevista de Percepção de Riscos Ocupacionais</h1>
+          <p className="text-[12px] opacity-90 mt-0.5">NR-01 · Item 1.5.3.3 · Percepção de Riscos</p>
+        </div>
+      </div>
+      {/* Company info bar */}
+      <div className="px-6 py-3 bg-gray-50 flex items-center justify-between gap-4 border-t border-gray-200">
+        <div className="flex items-center gap-3">
+          {companyLogo && <img src={companyLogo} alt="" className="h-10 w-10 object-contain rounded border border-gray-200 bg-white p-0.5" />}
+          <div>
+            <p className="text-[14px] font-bold text-gray-900">{companyName}</p>
+            <p className="text-[11px] text-gray-500">{sectorName} · {selectedFns.map(f => f.name).join(', ')}</p>
+          </div>
+        </div>
+        <p className="text-[10px] text-gray-400">{new Date().toLocaleDateString('pt-BR')}</p>
       </div>
     </div>
   );
 
-  // ## 8 - Informações Gerais - photo beside info fields, atribuições below
+  // =============================================
+  // INFORMAÇÕES GERAIS
+  // =============================================
   const renderInfo = () => (
-    <Card key="info" className="p-4">
-      <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-        <Building2 className="h-4 w-4" /> Informações Gerais
+    <div data-pdf-section="info" className={S.card}>
+      <h3 className={S.sectionTitle}>
+        <span className="inline-flex items-center justify-center h-6 w-6 rounded bg-[#0C97C4]/10 text-[#0C97C4] text-[12px] font-bold">1</span>
+        Informações Gerais
       </h3>
       <div className="flex gap-4">
-        <div className="flex-1 overflow-x-auto">
-          <Table>
-            <TableBody>
-              <TableRow>
-                <TableCell className="font-medium text-muted-foreground w-1/3">Empresa</TableCell>
-                <TableCell className="text-foreground">{companyName}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="font-medium text-muted-foreground">Setor</TableCell>
-                <TableCell className="text-foreground">{sectorName}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="font-medium text-muted-foreground">Função(ões)</TableCell>
-                <TableCell className="text-foreground">{selectedFns.map(f => f.name).join(', ')}</TableCell>
-              </TableRow>
-              {formData.funcionario && (
-                <TableRow>
-                  <TableCell className="font-medium text-muted-foreground">Funcionário(s) Avaliado(s)</TableCell>
-                  <TableCell className="text-foreground">{formData.funcionario}</TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+        <div className="flex-1">
+          <table className="w-full text-left">
+            <tbody>
+              {[
+                ['Empresa', companyName],
+                ['Setor', sectorName],
+                ['Função(ões)', selectedFns.map(f => f.name).join(', ')],
+                ...(formData.funcionario ? [['Funcionário(s)', formData.funcionario]] : []),
+              ].map(([label, value], i) => (
+                <tr key={i} className="border-b border-gray-100 last:border-0">
+                  <td className="py-2 pr-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wider w-1/3">{label}</td>
+                  <td className="py-2 text-[13px] text-gray-900">{value}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        {employeePhoto && (
-          <div className="shrink-0">
-            <img src={employeePhoto} alt="Funcionário" className="h-28 w-28 object-cover rounded-lg border border-border" />
-          </div>
-        )}
+        {employeePhoto && <img src={employeePhoto} alt="" className="h-24 w-24 object-cover rounded-lg border border-gray-200 shrink-0" />}
       </div>
       {formData.atribuicoes && (
-        <div className="mt-3">
-          <span className="text-sm font-medium text-muted-foreground">Atribuições do cargo:</span>
-          <p className="text-sm text-foreground whitespace-pre-wrap mt-1 text-justify">{formData.atribuicoes}</p>
+        <div className="mt-3 pt-3 border-t border-gray-100">
+          <p className={S.label}>Atribuições do cargo</p>
+          <p className="text-[12px] text-gray-700 mt-1 whitespace-pre-wrap leading-relaxed">{formData.atribuicoes}</p>
         </div>
       )}
-    </Card>
+    </div>
   );
 
-  // ## 12 - Page break utility
-  const PageBreak = () => <div className="hidden print:block print:break-after-page" />;
-
-  const renderRisks = () => {
-    return (
-      <React.Fragment key="risks">
-        <div className="print:break-before-page" />
-        <Card className="p-4">
-          <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4" /> Riscos Identificados
-          </h3>
-          {selectedRiskIds.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum risco selecionado.</p>
-          ) : (
-            <div className="space-y-3">
-              {selectedRiskIds.map(rId => {
-                const risk = risks.find(r => r.id === rId);
-                if (!risk) return null;
-                const cat = riskCategories.find(c => c.id === risk.categoryId);
-                const colors = cat ? getRiskColor(cat.type) : null;
-                const riskConformities = conformities.filter(c => c.risk.id === rId);
-                const riskNonConformities = nonConformities.filter(c => c.risk.id === rId);
-                return (
-                  <div key={rId} className="border border-border rounded-lg overflow-hidden">
-                    <div className={`px-4 py-2 ${colors ? `${colors.bg} ${colors.text}` : 'bg-muted text-foreground'}`}>
-                      <span className="font-semibold text-sm">{risk.name}</span>
-                      {cat && <span className="ml-2 text-xs opacity-80">({cat.name})</span>}
-                    </div>
-                    <div className="p-3 space-y-1 text-sm">
-                      <div><span className="text-muted-foreground">Fonte geradora:</span> <span className="text-foreground">{riskSources[rId] || '—'}</span></div>
-                      <div><span className="text-muted-foreground">Exposição:</span> <span className="text-foreground">{riskExposures[rId] === 'Outra' ? riskExposureOther[rId] || '—' : riskExposures[rId] || '—'}</span></div>
-                      <div className="flex gap-4">
-                        <div><span className="text-muted-foreground">Severidade:</span> <span className="text-foreground">{getSevLabel(riskSeverity[rId] || '0')}</span></div>
-                        <div><span className="text-muted-foreground">Probabilidade:</span> <span className="text-foreground">{getProbLabel(riskProbability[rId] || '0')}</span></div>
-                      </div>
-                      {riskConformities.length > 0 && (
-                        <div className="mt-2 pt-2 border-t border-border/50">
-                          <span className="text-[11px] font-medium text-green-700 dark:text-green-400">Conformidades:</span>
-                          <ul className="mt-0.5 space-y-0.5">
-                            {riskConformities.map(({ measure }) => (
-                              <li key={measure.id} className="text-[11px] text-muted-foreground flex items-center gap-1">
-                                <CheckCircle2 className="h-3 w-3 text-green-600 shrink-0" />
-                                {measure.name}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                      {riskNonConformities.length > 0 && (
-                        <div className={`mt-2 pt-2 ${riskConformities.length > 0 ? '' : 'border-t border-border/50'}`}>
-                          <span className="text-[11px] font-medium text-red-700 dark:text-red-400">Não conformidades:</span>
-                          <ul className="mt-0.5 space-y-0.5">
-                            {riskNonConformities.map(({ measure }) => (
-                              <li key={measure.id} className="text-[11px] text-muted-foreground flex items-center gap-1">
-                                <XCircle className="h-3 w-3 text-red-600 shrink-0" />
-                                {measure.name}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
+  // =============================================
+  // RISCOS IDENTIFICADOS
+  // =============================================
+  const renderRisks = () => (
+    <div data-pdf-section="risks" className={S.card}>
+      <h3 className={S.sectionTitle}>
+        <span className="inline-flex items-center justify-center h-6 w-6 rounded bg-amber-100 text-amber-700 text-[12px] font-bold">2</span>
+        Riscos Identificados
+      </h3>
+      {selectedRiskIds.length === 0 ? (
+        <p className="text-[12px] text-gray-400 italic">Nenhum risco selecionado.</p>
+      ) : (
+        <div className="space-y-3">
+          {selectedRiskIds.map(rId => {
+            const risk = risks.find(r => r.id === rId);
+            if (!risk) return null;
+            const cat = riskCategories.find(c => c.id === risk.categoryId);
+            const colors = cat ? getRiskColor(cat.type) : null;
+            return (
+              <div key={rId} className="border border-gray-200 rounded-lg overflow-hidden">
+                <div className={`px-4 py-2 ${colors ? `${colors.bg} ${colors.text}` : 'bg-gray-100 text-gray-700'}`}>
+                  <span className="font-bold text-[12px]">{risk.name}</span>
+                  {cat && <span className="ml-2 text-[10px] opacity-70">({cat.name})</span>}
+                </div>
+                <div className="px-4 py-2.5 space-y-1 text-[11px] bg-white">
+                  <div><span className="text-gray-400">Fonte geradora:</span> <span className="text-gray-700 font-medium">{riskSources[rId] || '—'}</span></div>
+                  <div><span className="text-gray-400">Exposição:</span> <span className="text-gray-700 font-medium">{riskExposures[rId] === 'Outra' ? riskExposureOther[rId] || '—' : riskExposures[rId] || '—'}</span></div>
+                  <div className="flex gap-6">
+                    <div><span className="text-gray-400">Severidade:</span> <span className="text-gray-700 font-medium">{getSev(riskSeverity[rId] || '0')}</span></div>
+                    <div><span className="text-gray-400">Probabilidade:</span> <span className="text-gray-700 font-medium">{getProb(riskProbability[rId] || '0')}</span></div>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </Card>
-        <div className="print:break-after-page" />
-      </React.Fragment>
-    );
-  };
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 
+  // =============================================
+  // CONFORMIDADES
+  // =============================================
   const renderConformities = () => (
-    <Card key="conformities" className="p-4">
-      <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-        <CheckCircle2 className="h-4 w-4 text-green-600" /> Conformidades
+    <div data-pdf-section="conformities" className={S.card}>
+      <h3 className={S.sectionTitle}>
+        <span className="inline-flex items-center justify-center h-6 w-6 rounded bg-green-100 text-green-700 text-[12px] font-bold">3</span>
+        Conformidades
       </h3>
       {conformities.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Nenhuma medida marcada como existente.</p>
+        <p className="text-[12px] text-gray-400 italic">Nenhuma medida marcada como existente.</p>
       ) : (
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           {conformities.map(({ risk, measure }) => (
-            <div key={measure.id} className="flex items-center gap-2 py-1.5 border-b border-border last:border-0">
-              <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-300 dark:bg-green-900/20 dark:text-green-400">EXISTENTE</Badge>
-              <span className="text-sm text-foreground">{measure.name}</span>
-              <span className="text-xs text-muted-foreground">({risk.name})</span>
+            <div key={measure.id} className="flex items-center gap-2 py-1.5 px-3 rounded-md bg-green-50 border border-green-200">
+              <span className="text-[10px] font-bold text-green-700 bg-green-100 px-1.5 py-0.5 rounded">EXISTENTE</span>
+              <span className="text-[12px] text-gray-800 font-medium">{measure.name}</span>
+              <span className="text-[10px] text-gray-400">({risk.name})</span>
             </div>
           ))}
         </div>
       )}
-    </Card>
+    </div>
   );
 
-  // ## 10 - Unified Non-conformities block (merged with action plan)
+  // =============================================
+  // NÃO CONFORMIDADES + PLANO DE AÇÃO
+  // =============================================
   const renderNonConformities = () => (
-    <Card key="nonconformities" className="p-4">
-      <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-        <XCircle className="h-4 w-4 text-red-600" /> Não Conformidades (Sugestão de Plano de Ação)
+    <div data-pdf-section="nonconformities" className={S.card}>
+      <h3 className={S.sectionTitle}>
+        <span className="inline-flex items-center justify-center h-6 w-6 rounded bg-red-100 text-red-700 text-[12px] font-bold">4</span>
+        Não Conformidades (Sugestão de Plano de Ação)
       </h3>
       {nonConformities.length === 0 && customActions.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Nenhuma medida marcada como não existente.</p>
+        <p className="text-[12px] text-gray-400 italic">Nenhuma medida marcada como não existente.</p>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {nonConformities.map(({ risk, measure, note }) => (
-            <div key={measure.id} className="p-3 rounded-md bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800">
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-[10px] bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-400">NÃO EXISTENTE</Badge>
-                <span className="text-sm font-medium text-foreground">{measure.name}</span>
-                <span className="text-xs text-muted-foreground">({risk.name})</span>
+            <div key={measure.id} className="rounded-lg border border-red-200 overflow-hidden">
+              <div className="px-3 py-2 bg-red-50 flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] font-bold text-red-700 bg-red-100 px-1.5 py-0.5 rounded">NÃO EXISTENTE</span>
+                <span className="text-[12px] text-gray-800 font-medium">{measure.name}</span>
+                <span className="text-[10px] text-gray-400">({risk.name})</span>
               </div>
-              {note && <p className="text-sm text-muted-foreground mt-1 ml-1">📝 {note}</p>}
-              <div className="mt-2 ml-1 p-2 bg-amber-50 dark:bg-amber-900/10 rounded border border-amber-200 dark:border-amber-800">
-                <p className="text-xs font-medium text-amber-800 dark:text-amber-300">
-                  ⚡ Sugestão: Implementar {measure.name}
-                </p>
+              {note && <p className="px-3 py-1.5 text-[11px] text-gray-600 bg-white border-t border-red-100">Obs: {note}</p>}
+              <div className="px-3 py-1.5 bg-amber-50 border-t border-amber-200 text-[11px] text-amber-800 font-medium">
+                Sugestão: Implementar {measure.name}
               </div>
             </div>
           ))}
           {customActions.map((action, i) => (
             <div key={`custom-${i}`} className="flex items-center gap-2">
-              <Input placeholder="Descreva a medida adicional..." value={action} onChange={e => onUpdateCustomAction(i, e.target.value)} className="text-sm" />
+              <Input placeholder="Medida adicional..." value={action} onChange={e => onUpdateCustomAction(i, e.target.value)} className="text-sm" />
               <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => onRemoveCustomAction(i)}>
                 <Trash2 className="h-3.5 w-3.5 text-destructive" />
               </Button>
@@ -320,156 +271,146 @@ export function ChecklistReport(props: ReportProps) {
           ))}
         </div>
       )}
-    </Card>
+    </div>
   );
 
+  // =============================================
+  // NÃO SE APLICA
+  // =============================================
   const renderNA = () => notApplicable.length > 0 ? (
-    <React.Fragment key="na">
-      <Card className="p-4">
-        <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-          <Shield className="h-4 w-4 text-amber-600" /> Não se Aplica
-        </h3>
-        <div className="space-y-1">
-          {notApplicable.map(({ risk, measure }) => (
-            <div key={measure.id} className="flex items-center gap-2 py-1.5 border-b border-border last:border-0">
-              <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-900/20 dark:text-amber-400">N/A</Badge>
-              <span className="text-sm text-foreground">{measure.name}</span>
-              <span className="text-xs text-muted-foreground">({risk.name})</span>
-            </div>
-          ))}
-        </div>
-      </Card>
-      <div className="print:break-after-page" />
-    </React.Fragment>
+    <div data-pdf-section="na" className={S.card}>
+      <h3 className={S.sectionTitle}>
+        <span className="inline-flex items-center justify-center h-6 w-6 rounded bg-amber-100 text-amber-700 text-[12px] font-bold">—</span>
+        Não se Aplica
+      </h3>
+      <div className="space-y-1">
+        {notApplicable.map(({ risk, measure }) => (
+          <div key={measure.id} className="flex items-center gap-2 py-1.5 px-3 rounded-md bg-amber-50 border border-amber-200">
+            <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">N/A</span>
+            <span className="text-[12px] text-gray-800">{measure.name}</span>
+            <span className="text-[10px] text-gray-400">({risk.name})</span>
+          </div>
+        ))}
+      </div>
+    </div>
   ) : null;
 
+  // =============================================
+  // EPIs
+  // =============================================
   const renderEpis = () => {
-    const allEpiItems = allEpis.filter(e => (epiStatuses[e.id] || 0) > 0);
+    const items = allEpis.filter(e => (epiStatuses[e.id] || 0) > 0);
     return (
-      <Card key="epis" className="p-4">
-        <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-          <ShieldAlert className="h-4 w-4" /> EPIs
+      <div data-pdf-section="epis" className={S.card}>
+        <h3 className={S.sectionTitle}>
+          <span className="inline-flex items-center justify-center h-6 w-6 rounded bg-[#0C97C4]/10 text-[#0C97C4] text-[12px] font-bold">5</span>
+          EPIs
         </h3>
-        {allEpiItems.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nenhum EPI avaliado.</p>
-        ) : (
+        {items.length === 0 ? <p className="text-[12px] text-gray-400 italic">Nenhum EPI avaliado.</p> : (
           <div className="flex flex-wrap gap-2">
-            {allEpiItems.map(epi => {
+            {items.map(epi => {
               const st = epiStatuses[epi.id] || 0;
-              const colorClass = st === 1 ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800'
-                : st === 2 ? 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800'
-                : 'bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800';
+              const cls = st === 1 ? 'bg-green-50 border-green-200' : st === 2 ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200';
               const label = st === 1 ? 'POSSUI' : st === 2 ? 'NÃO POSSUI' : 'N/A';
               return (
-                <div key={epi.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${colorClass}`}>
-                  {epi.image && <img src={epi.image} alt={epi.name} className="h-8 w-8 object-contain rounded" />}
-                  <span className="text-sm font-medium text-foreground">{epi.name}</span>
-                  <Badge variant="outline" className="text-[10px]">{label}</Badge>
+                <div key={epi.id} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border ${cls}`}>
+                  {epi.image && <img src={epi.image} alt="" className="h-7 w-7 object-contain rounded" />}
+                  <span className="text-[11px] font-medium text-gray-800">{epi.name}</span>
+                  <span className="text-[9px] font-bold text-gray-500">{label}</span>
                 </div>
               );
             })}
           </div>
         )}
-      </Card>
+      </div>
     );
   };
 
+  // =============================================
+  // TREINAMENTOS
+  // =============================================
   const renderTrainings = () => {
-    const allTrainingItems = allTrainings.filter(t => (trainingStatuses[t.id] || 0) > 0);
+    const items = allTrainings.filter(t => (trainingStatuses[t.id] || 0) > 0);
     return (
-      <React.Fragment key="trainings">
-        <Card className="p-4">
-          <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-            <GraduationCap className="h-4 w-4" /> Treinamentos
-          </h3>
-          {allTrainingItems.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum treinamento avaliado.</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {allTrainingItems.map(t => {
-                const st = trainingStatuses[t.id] || 0;
-                const colorClass = st === 1 ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800'
-                  : st === 2 ? 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800'
-                  : 'bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800';
-                const label = st === 1 ? 'POSSUI' : st === 2 ? 'NÃO POSSUI' : 'N/A';
-                return (
-                  <div key={t.id} className={`px-3 py-1.5 rounded-lg border ${colorClass}`}>
-                    <span className="text-sm font-medium text-foreground">{t.name}</span>
-                    <Badge variant="outline" className="text-[10px] ml-2">{label}</Badge>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </Card>
-        {/* ## 12 - Page break between Trainings and Exams */}
-        <PageBreak />
-      </React.Fragment>
-    );
-  };
-
-  // ## 9 - Exams with periodicity display + page break before
-  const renderExams = () => (
-    <React.Fragment key="exams">
-      <div className="print:break-before-page" />
-      <Card className="p-4">
-        <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-          <Stethoscope className="h-4 w-4" /> Exames por Função
+      <div data-pdf-section="trainings" className={S.card}>
+        <h3 className={S.sectionTitle}>
+          <span className="inline-flex items-center justify-center h-6 w-6 rounded bg-[#1B9B4E]/10 text-[#1B9B4E] text-[12px] font-bold">6</span>
+          Treinamentos
         </h3>
-        {examsByFunction.every(e => e.exams.length === 0) ? (
-          <p className="text-sm text-muted-foreground">Nenhum exame vinculado.</p>
-        ) : (
-          <div className="space-y-4">
-            {examsByFunction.map(({ fn, exams }) => (
-              <div key={fn.id}>
-                <p className="text-sm font-semibold text-foreground mb-1">{fn.name}</p>
-                {exams.length === 0 ? (
-                  <p className="text-xs text-muted-foreground ml-2">Sem exames.</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table className="text-xs">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="text-[11px] px-2 py-1">Exame</TableHead>
-                          <TableHead className="text-[11px] px-1 py-1 text-center">Adm.</TableHead>
-                          <TableHead className="text-[11px] px-1 py-1 text-center">Dem.</TableHead>
-                          <TableHead className="text-[11px] px-1 py-1 text-center">Mud.</TableHead>
-                          <TableHead className="text-[11px] px-1 py-1 text-center">Ret.</TableHead>
-                          <TableHead className="text-[11px] px-1 py-1 text-center">Periódico</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {exams.map(ex => (
-                          <TableRow key={ex.id}>
-                            <TableCell className="text-[11px] px-2 py-1">
-                              <div className="font-medium">{ex.name}</div>
-                              <div className="text-[10px] text-muted-foreground">
-                                Código eSocial: {ex.esocialCode || 'Não informado'}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-center px-1 py-1">{ex.admissional ? '✓' : '—'}</TableCell>
-                            <TableCell className="text-center px-1 py-1">{ex.demissional ? '✓' : '—'}</TableCell>
-                            <TableCell className="text-center px-1 py-1">{ex.mudanca ? '✓' : '—'}</TableCell>
-                            <TableCell className="text-center px-1 py-1">{ex.retornoTrabalho ? '✓' : '—'}</TableCell>
-                            <TableCell className="text-center px-1 py-1 text-[10px]">
-                              {ex.periodico
-                                ? `${ex.periodicidade || 12} meses`
-                                : 'Não obrigatório'}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </div>
-            ))}
+        {items.length === 0 ? <p className="text-[12px] text-gray-400 italic">Nenhum treinamento avaliado.</p> : (
+          <div className="flex flex-wrap gap-2">
+            {items.map(t => {
+              const st = trainingStatuses[t.id] || 0;
+              const cls = st === 1 ? 'bg-green-50 border-green-200' : st === 2 ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200';
+              const label = st === 1 ? 'POSSUI' : st === 2 ? 'NÃO POSSUI' : 'N/A';
+              return (
+                <div key={t.id} className={`px-2.5 py-1.5 rounded-lg border ${cls}`}>
+                  <span className="text-[11px] font-medium text-gray-800">{t.name}</span>
+                  <span className="text-[9px] font-bold text-gray-500 ml-1.5">{label}</span>
+                </div>
+              );
+            })}
           </div>
         )}
-      </Card>
-    </React.Fragment>
+      </div>
+    );
+  };
+
+  // =============================================
+  // EXAMES POR FUNÇÃO
+  // =============================================
+  const renderExams = () => (
+    <div data-pdf-section="exams" className={S.card}>
+      <h3 className={S.sectionTitle}>
+        <span className="inline-flex items-center justify-center h-6 w-6 rounded bg-purple-100 text-purple-700 text-[12px] font-bold">7</span>
+        Exames por Função
+      </h3>
+      {examsByFunction.every(e => e.exams.length === 0) ? (
+        <p className="text-[12px] text-gray-400 italic">Nenhum exame vinculado.</p>
+      ) : (
+        <div className="space-y-4">
+          {examsByFunction.map(({ fn, exams }) => (
+            <div key={fn.id}>
+              <p className="text-[12px] font-bold text-gray-800 mb-1.5">{fn.name}</p>
+              <div className="overflow-x-auto">
+                <Table className="text-[11px]">
+                  <TableHeader>
+                    <TableRow className="bg-gray-50">
+                      <TableHead className="text-[10px] px-2 py-1.5 font-bold">Exame</TableHead>
+                      <TableHead className="text-[10px] px-1 py-1.5 text-center font-bold">Adm.</TableHead>
+                      <TableHead className="text-[10px] px-1 py-1.5 text-center font-bold">Dem.</TableHead>
+                      <TableHead className="text-[10px] px-1 py-1.5 text-center font-bold">Mud.</TableHead>
+                      <TableHead className="text-[10px] px-1 py-1.5 text-center font-bold">Ret.</TableHead>
+                      <TableHead className="text-[10px] px-1 py-1.5 text-center font-bold">Periódico</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {exams.map(ex => (
+                      <TableRow key={ex.id}>
+                        <TableCell className="px-2 py-1.5">
+                          <span className="font-medium">{ex.name}</span>
+                          <span className="text-[9px] text-gray-400 ml-1">eSocial: {ex.esocialCode || '—'}</span>
+                        </TableCell>
+                        <TableCell className="text-center px-1 py-1.5">{ex.admissional ? '✓' : '—'}</TableCell>
+                        <TableCell className="text-center px-1 py-1.5">{ex.demissional ? '✓' : '—'}</TableCell>
+                        <TableCell className="text-center px-1 py-1.5">{ex.mudanca ? '✓' : '—'}</TableCell>
+                        <TableCell className="text-center px-1 py-1.5">{ex.retornoTrabalho ? '✓' : '—'}</TableCell>
+                        <TableCell className="text-center px-1 py-1.5">{ex.periodico ? `${ex.periodicidade || 12} meses` : '—'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 
+  // =============================================
+  // BLOCOS PERSONALIZADOS
+  // =============================================
   const renderCustom = () => {
     const customBlocks = blocks.filter(b => {
       const n = b.name.toLowerCase();
@@ -484,59 +425,77 @@ export function ChecklistReport(props: ReportProps) {
       const hasData = fields.some(f => formData[`custom_${block.id}_${f.id}`]?.trim());
       if (!hasData) return null;
       return (
-        <Card key={block.id} className="p-4">
-          <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-            <ClipboardList className="h-4 w-4" /> {block.name}
-          </h3>
-          <div className="space-y-2 text-sm">
+        <div key={block.id} data-pdf-section={`custom-${block.id}`} className={S.card}>
+          <h3 className={S.sectionTitle}>{block.name}</h3>
+          <div className="space-y-1.5 text-[12px]">
             {fields.map(field => {
               const val = formData[`custom_${block.id}_${field.id}`];
               if (!val?.trim()) return null;
               return (
                 <div key={field.id}>
-                  <span className="text-muted-foreground">{field.label}:</span>{' '}
-                  <span className="text-foreground">{field.type === 'checkbox' ? val.replace(/\|\|\|/g, ', ') : val}</span>
+                  <span className="text-gray-400">{field.label}:</span>{' '}
+                  <span className="text-gray-800 font-medium">{field.type === 'checkbox' ? val.replace(/\|\|\|/g, ', ') : val}</span>
                 </div>
               );
             })}
           </div>
-        </Card>
+        </div>
       );
     }).filter(Boolean);
     return rendered.length > 0 ? <React.Fragment key="custom">{rendered}</React.Fragment> : null;
   };
 
+  // =============================================
+  // OBSERVAÇÕES
+  // =============================================
   const renderObservations = () => observations?.trim() ? (
-    <Card key="observations" className="p-4">
-      <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-        <MessageSquare className="h-4 w-4" /> Observações
+    <div data-pdf-section="observations" className={S.card}>
+      <h3 className={S.sectionTitle}>
+        <span className="inline-flex items-center justify-center h-6 w-6 rounded bg-gray-100 text-gray-600 text-[12px] font-bold">*</span>
+        Observações
       </h3>
-      <p className="text-sm text-foreground whitespace-pre-wrap">{observations}</p>
-    </Card>
+      <p className="text-[12px] text-gray-700 whitespace-pre-wrap leading-relaxed">{observations}</p>
+    </div>
   ) : null;
 
-  // ## 11 - Professional responsible
-  const renderProfessional = () => {
-    if (professionals.length === 0) return null;
-    return (
-      <Card key="professional" className="p-4">
-        <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-          <User className="h-4 w-4" /> Profissional Responsável
-        </h3>
-        <div className="space-y-3">
-          {professionals.map(p => (
-            <div key={p.id} className="border border-border rounded-lg p-3">
-              <p className="text-sm font-semibold text-foreground">{p.name}</p>
-              <p className="text-xs text-muted-foreground">{p.formation}</p>
-              <p className="text-xs text-muted-foreground">Registro: {p.registration}</p>
-            </div>
-          ))}
-        </div>
-      </Card>
-    );
-  };
+  // =============================================
+  // PROFISSIONAL RESPONSÁVEL
+  // =============================================
+  const renderProfessional = () => professionals.length === 0 ? null : (
+    <div data-pdf-section="professional" className={S.card}>
+      <h3 className={S.sectionTitle}>Profissional Responsável</h3>
+      <div className="space-y-2">
+        {professionals.map(p => (
+          <div key={p.id} className="border border-gray-200 rounded-lg p-3">
+            <p className="text-[13px] font-bold text-gray-900">{p.name}</p>
+            <p className="text-[11px] text-gray-500">{p.formation}</p>
+            <p className="text-[11px] text-gray-500">Registro: {p.registration}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
-  // blockMap without actionplan (merged into nonconformities)
+  // =============================================
+  // FOOTER
+  // =============================================
+  const renderFooter = () => (
+    <div data-pdf-section="footer" className="rounded-lg border border-gray-200 overflow-hidden">
+      <div className={`${S.headerBar} px-4 py-2 flex items-center gap-3`}>
+        <img src={logoColorida} alt="MedWork" className="h-7 bg-white rounded p-0.5" />
+        <span className="text-white text-[11px] font-semibold">MedWork · VISTEC</span>
+      </div>
+      <div className="px-4 py-2.5 bg-gray-50">
+        <p className="text-[10px] text-gray-500 italic leading-relaxed">
+          A presente entrevista foi realizada em atendimento ao item 1.5.3.3 da NR-01, que dispõe sobre a adoção de mecanismos para consultar os trabalhadores quanto à percepção de riscos ocupacionais.
+        </p>
+      </div>
+    </div>
+  );
+
+  // =============================================
+  // RENDER
+  // =============================================
   const blockMap: Record<string, () => React.ReactNode> = {
     info: renderInfo,
     risks: renderRisks,
@@ -550,30 +509,19 @@ export function ChecklistReport(props: ReportProps) {
     observations: renderObservations,
   };
 
-  const renderFooterText = () => (
-    <Card key="footer-text" className="p-4">
-      <p className="text-sm text-muted-foreground italic">
-        A presente entrevista foi realizada em atendimento ao item 1.5.3.3 da NR-01, que dispõe sobre a adoção de mecanismos para consultar os trabalhadores quanto à percepção de riscos ocupacionais.
-      </p>
-    </Card>
-  );
-
   return (
-    <div className="space-y-6">
+    <div className={`${S.page} space-y-4`}>
       {renderHeader()}
-
       {rBlocks.length > 0
         ? rBlocks.filter(b => b.visible && b.key !== 'actionplan').map(b => {
             const renderer = blockMap[b.key];
-            return renderer ? renderer() : null;
+            return renderer ? <React.Fragment key={b.key}>{renderer()}</React.Fragment> : null;
           })
-        : Object.values(blockMap).map(fn => fn())
+        : Object.entries(blockMap).map(([k, fn]) => <React.Fragment key={k}>{fn()}</React.Fragment>)
       }
-
-      {/* Always render observations and professional regardless of block config */}
       {!rBlocks.some(b => b.key === 'observations' && b.visible) && renderObservations()}
       {renderProfessional()}
-      {renderFooterText()}
+      {renderFooter()}
     </div>
   );
 }
