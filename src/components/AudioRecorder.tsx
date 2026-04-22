@@ -1,15 +1,26 @@
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Mic, Square, Play, Trash2, Upload } from 'lucide-react';
+import { uploadFile, safeUploadFile } from '@/lib/uploadFile';
 
 interface AudioRecorderProps {
-  value?: string; // base64 audio data URL
+  value?: string; // Storage URL (ou data URL como fallback)
   onChange: (value: string) => void;
   onClear: () => void;
 }
 
+async function blobToDataUrl(blob: Blob): Promise<string> {
+  return await new Promise<string>((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(blob);
+  });
+}
+
 export function AudioRecorder({ value, onChange, onClear }: AudioRecorderProps) {
   const [recording, setRecording] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const chunks = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -25,14 +36,18 @@ export function AudioRecorder({ value, onChange, onClear }: AudioRecorderProps) 
         if (e.data.size > 0) chunks.current.push(e.data);
       };
 
-      recorder.onstop = () => {
-        const blob = new Blob(chunks.current, { type: 'audio/webm' });
-        const reader = new FileReader();
-        reader.onload = () => {
-          if (reader.result) onChange(reader.result as string);
-        };
-        reader.readAsDataURL(blob);
+      recorder.onstop = async () => {
         stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(chunks.current, { type: 'audio/webm' });
+        setUploading(true);
+        try {
+          const url = await uploadFile(blob, 'audio');
+          onChange(url);
+        } catch {
+          onChange(await blobToDataUrl(blob));
+        } finally {
+          setUploading(false);
+        }
       };
 
       recorder.start();
@@ -47,15 +62,17 @@ export function AudioRecorder({ value, onChange, onClear }: AudioRecorderProps) 
     setRecording(false);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (reader.result) onChange(reader.result as string);
-    };
-    reader.readAsDataURL(file);
     e.target.value = '';
+    setUploading(true);
+    try {
+      const url = await safeUploadFile(file, 'audio');
+      onChange(url);
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -88,6 +105,9 @@ export function AudioRecorder({ value, onChange, onClear }: AudioRecorderProps) 
 
       {recording && (
         <span className="text-xs text-destructive animate-pulse">● Gravando...</span>
+      )}
+      {uploading && !recording && (
+        <span className="text-xs text-muted-foreground animate-pulse">Enviando...</span>
       )}
     </div>
   );

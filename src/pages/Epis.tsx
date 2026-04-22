@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useStore } from '@/hooks/useStore';
 import { episStore } from '@/lib/storage';
+import { safeUploadFile } from '@/lib/uploadFile';
 import { HardHat, Plus, Pencil, Trash2, Check, X, ImagePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,15 +15,12 @@ export default function Epis() {
   const [form, setForm] = useState({ name: '', description: '', image: '' });
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const handleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (reader.result) setForm(prev => ({ ...prev, image: reader.result as string }));
-    };
-    reader.readAsDataURL(file);
     e.target.value = '';
+    const url = await safeUploadFile(file, 'epi-images');
+    setForm(prev => ({ ...prev, image: url }));
   };
 
   const startAdd = () => { setForm({ name: '', description: '', image: '' }); setAdding(true); setEditing(null); };

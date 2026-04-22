@@ -1,5 +1,6 @@
 import { useStore } from '@/hooks/useStore';
 import { companiesStore, sectorsStore, functionsStore, checklistsStore, type DocType } from '@/lib/storage';
+import { safeUploadFile } from '@/lib/uploadFile';
 import { useNavigate } from 'react-router-dom';
 import { useState, useMemo, useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -108,13 +109,12 @@ export default function Empresas() {
     );
   }, [companies.items, search]);
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>, setter: (val: string) => void) => {
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>, setter: (val: string) => void) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => { if (reader.result) setter(reader.result as string); };
-    reader.readAsDataURL(file);
     e.target.value = '';
+    const url = await safeUploadFile(file, 'logos');
+    setter(url);
   };
 
   const handleAdd = useCallback(() => {

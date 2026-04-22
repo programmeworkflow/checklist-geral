@@ -20,6 +20,7 @@ import { getRiskColor } from '@/lib/riskColors';
 import { SeverityHelp, ProbabilityHelp, SEVERITY_OPTIONS, PROBABILITY_OPTIONS } from '@/components/RiskMatrixHelp';
 import { ChecklistReport } from '@/components/ChecklistReport';
 import { exportReportToPdf } from '@/lib/exportPdf';
+import { safeUploadFile, uploadBase64 } from '@/lib/uploadFile';
 
 type Step = 'select' | 'fill';
 type MeasureStatus = 0 | 1 | 2 | 3;
@@ -78,24 +79,29 @@ const Checklist = () => {
     setCompanyId(targetEmpresa || source.companyId);
     setSectorId(targetEmpresa ? '' : source.sectorId);
     setSelectedFunctionIds(source.functionIds || []);
-    setFormData(source.formData || {});
-    setObservations(source.formData?.observations || '');
+    const fd: any = source.formData || {};
+    setFormData(fd);
+    setObservations(fd.observations || '');
+    // Prefer formData.* (new schema), fall back to top-level (legacy)
+    const pick = (k: string) => fd[k] ?? (source as any)[k];
     // Load EPI/Training statuses (backward compat: old boolean → status 1)
     const epiSt: Record<string, MeasureStatus> = {};
-    if ((source as any).epiStatuses) {
-      Object.entries((source as any).epiStatuses).forEach(([k, v]) => { epiSt[k] = v as MeasureStatus; });
+    const epiStatusesSrc = pick('epiStatuses');
+    if (epiStatusesSrc) {
+      Object.entries(epiStatusesSrc).forEach(([k, v]) => { epiSt[k] = v as MeasureStatus; });
     } else if (source.selectedEpis) {
       Object.entries(source.selectedEpis).forEach(([k, v]) => { if (v) epiSt[k] = 1; });
     }
     setEpiStatuses(epiSt);
     const trSt: Record<string, MeasureStatus> = {};
-    if ((source as any).trainingStatuses) {
-      Object.entries((source as any).trainingStatuses).forEach(([k, v]) => { trSt[k] = v as MeasureStatus; });
+    const trainingStatusesSrc = pick('trainingStatuses');
+    if (trainingStatusesSrc) {
+      Object.entries(trainingStatusesSrc).forEach(([k, v]) => { trSt[k] = v as MeasureStatus; });
     } else if (source.selectedTrainings) {
       Object.entries(source.selectedTrainings).forEach(([k, v]) => { if (v) trSt[k] = 1; });
     }
     setTrainingStatuses(trSt);
-    setEmployeePhotos((source as any).employeePhotos || ((source as any).employeePhoto ? [(source as any).employeePhoto] : []));
+    setEmployeePhotos(pick('employeePhotos') || (pick('employeePhoto') ? [pick('employeePhoto')] : []));
 
     const riskChecks: Record<string, boolean> = {};
     const riskExp: Record<string, string> = {};
@@ -113,20 +119,20 @@ const Checklist = () => {
 
     const mStatuses: Record<string, MeasureStatus> = {};
     const mNotes: Record<string, string> = {};
-    Object.entries((source as any).measureStatuses || {}).forEach(([k, v]) => { mStatuses[k] = v as MeasureStatus; });
-    Object.entries((source as any).measureNotes || {}).forEach(([k, v]) => { mNotes[k] = v as string; });
+    Object.entries(pick('measureStatuses') || {}).forEach(([k, v]) => { mStatuses[k] = v as MeasureStatus; });
+    Object.entries(pick('measureNotes') || {}).forEach(([k, v]) => { mNotes[k] = v as string; });
     setMeasureStatuses(mStatuses);
     setMeasureNotes(mNotes);
 
     const sev: Record<string, string> = {};
     const prob: Record<string, string> = {};
-    Object.entries((source as any).riskSeverity || {}).forEach(([k, v]) => { sev[k] = v as string; });
-    Object.entries((source as any).riskProbability || {}).forEach(([k, v]) => { prob[k] = v as string; });
+    Object.entries(pick('riskSeverity') || {}).forEach(([k, v]) => { sev[k] = v as string; });
+    Object.entries(pick('riskProbability') || {}).forEach(([k, v]) => { prob[k] = v as string; });
     setRiskSeverity(sev);
     setRiskProbability(prob);
 
-    setCustomActions((source as any).customActions || []);
-    setRiskSources((source as any).riskSources || {});
+    setCustomActions(pick('customActions') || []);
+    setRiskSources(pick('riskSources') || {});
 
     setStep('fill');
     // If viewing (not duplicating), show report directly
@@ -165,16 +171,17 @@ const Checklist = () => {
   const removeAttachment = (key: string, index: number) => {
     setAttachments(prev => ({ ...prev, [key]: (prev[key] || []).filter((_, i) => i !== index) }));
   };
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    Array.from(files).forEach(file => {
-      const reader = new FileReader();
-      reader.onload = () => { if (reader.result) addAttachment(activeAttachKey.current, reader.result as string); };
-      reader.readAsDataURL(file);
-    });
+    const key = activeAttachKey.current;
+    const list = Array.from(files);
     e.target.value = '';
     setShowAttachMenu(null);
+    for (const file of list) {
+      const url = await safeUploadFile(file, 'checklist-files');
+      addAttachment(key, url);
+    }
   };
   const openCamera = (key: string) => { activeAttachKey.current = key; cameraInputRef.current?.click(); setShowAttachMenu(null); };
   const openGallery = (key: string) => { activeAttachKey.current = key; fileInputRef.current?.click(); setShowAttachMenu(null); };
@@ -293,35 +300,43 @@ const Checklist = () => {
       return;
     }
 
-    await checklistsStore.add({
-      companyId,
-      sectorId,
-      functionIds: selectedFunctionIds,
-      createdAt: new Date().toISOString(),
-      formData: { ...formData, observations },
-      selectedRisks: Object.fromEntries(
-        selectedRiskIds.map(k => [k, {
-          checked: true,
-          exposure: riskExposures[k] || '',
-          exposureOther: riskExposureOther[k] || '',
-        }])
-      ),
-      selectedEpis: Object.fromEntries(Object.entries(epiStatuses).filter(([, v]) => v === 1).map(([k]) => [k, true])),
-      selectedTrainings: Object.fromEntries(Object.entries(trainingStatuses).filter(([, v]) => v === 1).map(([k]) => [k, true])),
-      epiStatuses,
-      trainingStatuses,
-      employeePhoto: employeePhotos[0] || '',
-      employeePhotos,
-      measureStatuses,
-      measureNotes,
-      riskSeverity,
-      riskProbability,
-      riskSources,
-      customActions: customActions.filter(a => a.trim()),
-    } as any);
-    qc.invalidateQueries({ queryKey: ['checklists'] });
-    toast.success('Checklist salvo com sucesso!');
-    setShowReport(true);
+    try {
+      await checklistsStore.add({
+        companyId,
+        sectorId,
+        functionIds: selectedFunctionIds,
+        createdAt: new Date().toISOString(),
+        formData: {
+          ...formData,
+          observations,
+          epiStatuses,
+          trainingStatuses,
+          employeePhoto: employeePhotos[0] || '',
+          employeePhotos,
+          measureStatuses,
+          measureNotes,
+          riskSeverity,
+          riskProbability,
+          riskSources,
+          customActions: customActions.filter(a => a.trim()),
+        },
+        selectedRisks: Object.fromEntries(
+          selectedRiskIds.map(k => [k, {
+            checked: true,
+            exposure: riskExposures[k] || '',
+            exposureOther: riskExposureOther[k] || '',
+          }])
+        ),
+        selectedEpis: Object.fromEntries(Object.entries(epiStatuses).filter(([, v]) => v === 1).map(([k]) => [k, true])),
+        selectedTrainings: Object.fromEntries(Object.entries(trainingStatuses).filter(([, v]) => v === 1).map(([k]) => [k, true])),
+      } as any);
+      qc.invalidateQueries({ queryKey: ['checklists'] });
+      toast.success('Checklist salvo com sucesso!');
+      setShowReport(true);
+    } catch (err: any) {
+      console.error('Save checklist failed:', err);
+      toast.error(`Falha ao salvar: ${err?.message || 'erro desconhecido'}`);
+    }
   };
 
   if (step === 'select') {
@@ -1210,53 +1225,54 @@ const Checklist = () => {
               Foto do Funcionário <span className="text-destructive">*</span>
             </h2>
             <input ref={employeePhotoRef} type="file" accept="image/*" capture="environment" className="hidden"
-              onChange={e => {
+              onChange={async e => {
                 const files = e.target.files;
                 if (!files) return;
-                Array.from(files).forEach(file => {
-                  const reader = new FileReader();
-                  reader.onload = () => {
-                    if (reader.result) {
-                      const img = new Image();
-                      img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-                        const ctx = canvas.getContext('2d')!;
-                        ctx.drawImage(img, 0, 0);
-                        const now = new Date();
-                        const timestamp = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR');
-                        const fontSize = Math.max(20, img.width * 0.04);
-                        ctx.font = `bold ${fontSize}px sans-serif`;
-                        ctx.fillStyle = 'rgba(0,0,0,0.6)';
-                        const textWidth = ctx.measureText(timestamp).width;
-                        ctx.fillRect(10, img.height - fontSize - 20, textWidth + 20, fontSize + 10);
-                        ctx.fillStyle = '#FFFFFF';
-                        ctx.fillText(timestamp, 20, img.height - 18);
-                        setEmployeePhotos(prev => [...prev, canvas.toDataURL('image/jpeg', 0.85)]);
-                      };
-                      img.src = reader.result as string;
-                    }
-                  };
-                  reader.readAsDataURL(file);
-                });
+                const list = Array.from(files);
                 e.target.value = '';
+                for (const file of list) {
+                  const dataUrl = await new Promise<string>((resolve, reject) => {
+                    const r = new FileReader();
+                    r.onload = () => resolve(r.result as string);
+                    r.onerror = () => reject(r.error);
+                    r.readAsDataURL(file);
+                  });
+                  const stampedDataUrl = await new Promise<string>((resolve) => {
+                    const img = new Image();
+                    img.onload = () => {
+                      const canvas = document.createElement('canvas');
+                      canvas.width = img.width;
+                      canvas.height = img.height;
+                      const ctx = canvas.getContext('2d')!;
+                      ctx.drawImage(img, 0, 0);
+                      const now = new Date();
+                      const timestamp = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR');
+                      const fontSize = Math.max(20, img.width * 0.04);
+                      ctx.font = `bold ${fontSize}px sans-serif`;
+                      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                      const textWidth = ctx.measureText(timestamp).width;
+                      ctx.fillRect(10, img.height - fontSize - 20, textWidth + 20, fontSize + 10);
+                      ctx.fillStyle = '#FFFFFF';
+                      ctx.fillText(timestamp, 20, img.height - 18);
+                      resolve(canvas.toDataURL('image/jpeg', 0.85));
+                    };
+                    img.src = dataUrl;
+                  });
+                  const url = await uploadBase64(stampedDataUrl, 'employee-photos');
+                  setEmployeePhotos(prev => [...prev, url]);
+                }
               }}
             />
             <input ref={employeeGalleryRef} type="file" accept="image/*" multiple className="hidden"
-              onChange={e => {
+              onChange={async e => {
                 const files = e.target.files;
                 if (!files) return;
-                Array.from(files).forEach(file => {
-                  const reader = new FileReader();
-                  reader.onload = () => {
-                    if (reader.result) {
-                      setEmployeePhotos(prev => [...prev, reader.result as string]);
-                    }
-                  };
-                  reader.readAsDataURL(file);
-                });
+                const list = Array.from(files);
                 e.target.value = '';
+                for (const file of list) {
+                  const url = await safeUploadFile(file, 'employee-photos');
+                  setEmployeePhotos(prev => [...prev, url]);
+                }
               }}
             />
             {employeePhotos.length > 0 && (

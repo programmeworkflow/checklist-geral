@@ -51,41 +51,47 @@ export interface CrudStore<T extends { id: string }> {
 }
 
 function createCrud<T extends { id: string }>(table: string): CrudStore<T> {
+  const fail = (op: string, error: any): never => {
+    console.error(`[${table}] ${op} error:`, error);
+    throw new Error(`${table}.${op}: ${error?.message || error?.details || 'falha desconhecida'}`);
+  };
   return {
     table,
     getAll: async (): Promise<T[]> => {
       const { data, error } = await supabase.from(table).select('*');
-      if (error) { console.error(`[${table}] getAll error:`, error); return []; }
+      if (error) fail('getAll', error);
       return (data || []).map(row => fromDb(table, row) as T);
     },
     get: async (id: string): Promise<T | undefined> => {
       const { data, error } = await supabase.from(table).select('*').eq('id', id).maybeSingle();
-      if (error || !data) return undefined;
-      return fromDb(table, data) as T;
+      if (error) fail('get', error);
+      return data ? fromDb(table, data) as T : undefined;
     },
     add: async (item: Omit<T, 'id'>): Promise<T> => {
       const id = genId();
       const row = toDb(table, { ...item, id });
       const { data, error } = await supabase.from(table).insert(row).select().single();
-      if (error) { console.error(`[${table}] add error:`, error); return { ...item, id } as T; }
+      if (error) fail('add', error);
       return fromDb(table, data) as T;
     },
     update: async (id: string, partial: Partial<T>): Promise<T | undefined> => {
       const row = toDb(table, partial);
       delete row.id; // never update PK
       const { data, error } = await supabase.from(table).update(row).eq('id', id).select().maybeSingle();
-      if (error) { console.error(`[${table}] update error:`, error); return undefined; }
+      if (error) fail('update', error);
       return data ? fromDb(table, data) as T : undefined;
     },
     remove: async (id: string): Promise<void> => {
       const { error } = await supabase.from(table).delete().eq('id', id);
-      if (error) console.error(`[${table}] remove error:`, error);
+      if (error) fail('remove', error);
     },
     setAll: async (items: T[]): Promise<void> => {
-      await supabase.from(table).delete().neq('id', '___none___');
+      const delRes = await supabase.from(table).delete().neq('id', '___none___');
+      if (delRes.error) fail('setAll(delete)', delRes.error);
       if (items.length > 0) {
         const rows = items.map(i => toDb(table, i));
-        await supabase.from(table).insert(rows);
+        const insRes = await supabase.from(table).insert(rows);
+        if (insRes.error) fail('setAll(insert)', insRes.error);
       }
     },
   };

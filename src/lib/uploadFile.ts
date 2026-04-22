@@ -26,6 +26,8 @@ export async function uploadFile(
 /**
  * Upload a base64 data URL to Storage, returning the public URL.
  * If the input is already an http(s) URL, returns it as-is.
+ * If upload fails (e.g. bucket missing), returns the original data URL so the
+ * app keeps working — call site never sees a hard failure for optional assets.
  */
 export async function uploadBase64(dataUrl: string, folder: string): Promise<string> {
   if (!dataUrl || !dataUrl.startsWith('data:')) return dataUrl;
@@ -38,7 +40,27 @@ export async function uploadBase64(dataUrl: string, folder: string): Promise<str
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   const blob = new Blob([bytes], { type: mime });
 
-  return uploadFile(blob, folder);
+  try {
+    return await uploadFile(blob, folder);
+  } catch (err) {
+    console.warn(`[uploadBase64:${folder}] Storage upload failed, keeping data URL:`, err);
+    return dataUrl;
+  }
+}
+
+/** Upload a File to Storage with silent fallback (returns data URL on failure). */
+export async function safeUploadFile(file: File, folder: string): Promise<string> {
+  try {
+    return await uploadFile(file, folder);
+  } catch (err) {
+    console.warn(`[safeUploadFile:${folder}] Storage upload failed, reading as data URL:`, err);
+    return await new Promise<string>((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result as string);
+      r.onerror = () => reject(r.error);
+      r.readAsDataURL(file);
+    });
+  }
 }
 
 /** Delete a file from Storage by its public URL */
