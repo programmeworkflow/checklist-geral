@@ -20,7 +20,9 @@ import { getRiskColor } from '@/lib/riskColors';
 import { SeverityHelp, ProbabilityHelp, SEVERITY_OPTIONS, PROBABILITY_OPTIONS } from '@/components/RiskMatrixHelp';
 import { ChecklistReport } from '@/components/ChecklistReport';
 import { exportReportToPdf } from '@/lib/exportPdf';
+import { exportReportToExcel } from '@/lib/exportExcel';
 import { safeUploadFile, uploadBase64 } from '@/lib/uploadFile';
+import { FileSpreadsheet, FileDown } from 'lucide-react';
 
 type Step = 'select' | 'fill';
 type MeasureStatus = 0 | 1 | 2 | 3;
@@ -426,6 +428,89 @@ const Checklist = () => {
     }
   };
 
+  const handleExportExcel = () => {
+    try {
+      const filename = `relatorio_${company?.name?.replace(/\s+/g, '_') || 'checklist'}`;
+      const statusText = (st: number | undefined) =>
+        st === 1 ? 'Conforme' : st === 2 ? 'Não conforme' : st === 3 ? 'N/A' : 'Não avaliado';
+      const sevLabel = (v?: string) => {
+        const opt = SEVERITY_OPTIONS.find(o => String(o.value) === String(v));
+        return opt ? opt.label : '—';
+      };
+      const probLabel = (v?: string) => {
+        const opt = PROBABILITY_OPTIONS.find(o => String(o.value) === String(v));
+        return opt ? opt.label : '—';
+      };
+
+      const risksData = selectedRiskIds.map(id => {
+        const r = risks.find(x => x.id === id);
+        const cat = riskCategories.find(c => c.id === r?.categoryId);
+        return {
+          categoria: cat?.name || '—',
+          nome: r?.name || '—',
+          fonte: riskSources[id] || '—',
+          exposicao: riskExposures[id] === 'Outra'
+            ? (riskExposureOther[id] || 'Outra')
+            : (riskExposures[id] || '—'),
+          severidade: sevLabel(riskSeverity[id]),
+          probabilidade: probLabel(riskProbability[id]),
+        };
+      });
+
+      const nonConformities: { risco: string; medida: string; nota?: string }[] = [];
+      const conformities: { risco: string; medida: string }[] = [];
+      selectedRiskIds.forEach(rId => {
+        const r = risks.find(x => x.id === rId);
+        allMeasures.filter(m => m.riskId === rId).forEach(m => {
+          const st = measureStatuses[m.id] || 0;
+          if (st === 1) conformities.push({ risco: r?.name || '—', medida: m.name });
+          if (st === 2) nonConformities.push({ risco: r?.name || '—', medida: m.name, nota: measureNotes[m.id] });
+        });
+      });
+
+      const actionPlan = [
+        ...nonConformities.map(n => ({ acao: `${n.medida}${n.nota ? ' — ' + n.nota : ''} (${n.risco})`, tipo: 'medida' as const })),
+        ...customActions.filter(a => a.trim()).map(a => ({ acao: a, tipo: 'custom' as const })),
+      ];
+
+      const epiList = Object.entries(epiStatuses)
+        .filter(([, v]) => v > 0)
+        .map(([id, st]) => {
+          const e = epis.find(x => x.id === id);
+          return { nome: e?.name || '—', status: statusText(st as number) };
+        });
+
+      const trainingList = Object.entries(trainingStatuses)
+        .filter(([, v]) => v > 0)
+        .map(([id, st]) => {
+          const t = trainings.find(x => x.id === id);
+          return { nome: t?.name || '—', status: statusText(st as number) };
+        });
+
+      exportReportToExcel({
+        filename,
+        empresa: company?.name || '—',
+        empresaDoc: company?.doc,
+        setor: sector?.name || '—',
+        funcoes: selectedFns.map(f => f.name),
+        data: new Date().toLocaleDateString('pt-BR'),
+        tecnico: formData.tecnico,
+        funcionario: formData.funcionario,
+        observations,
+        risks: risksData,
+        nonConformities,
+        conformities,
+        actionPlan,
+        epis: epiList,
+        trainings: trainingList,
+      });
+      toast.success('Excel gerado com sucesso!');
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao gerar Excel.');
+    }
+  };
+
   const AttachmentAction = ({ attachKey }: { attachKey: string }) => {
     const photos = attachments[attachKey] || [];
     return (
@@ -720,12 +805,15 @@ const Checklist = () => {
               onRemoveCustomAction={(i) => setCustomActions(customActions.filter((_, idx) => idx !== i))}
             />
           </div>
-          <div className="flex gap-2 print:hidden">
-            <Button onClick={handleSave} className="flex-1 bg-green-600 hover:bg-green-700 text-white" size="lg">
+          <div className="flex flex-wrap gap-2 print:hidden">
+            <Button onClick={handleSave} className="flex-1 min-w-[160px] bg-green-600 hover:bg-green-700 text-white" size="lg">
               <Save className="h-4 w-4 mr-2" /> Salvar Checklist
             </Button>
             <Button variant="outline" size="lg" onClick={handleExportPdf} disabled={exporting}>
-              <Share2 className="h-4 w-4 mr-2" /> {exporting ? 'Gerando...' : 'Compartilhar PDF'}
+              <FileDown className="h-4 w-4 mr-2" /> {exporting ? 'Gerando...' : 'Baixar PDF'}
+            </Button>
+            <Button variant="outline" size="lg" onClick={handleExportExcel}>
+              <FileSpreadsheet className="h-4 w-4 mr-2" /> Baixar Excel
             </Button>
           </div>
         </div>
