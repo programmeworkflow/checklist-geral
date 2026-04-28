@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { CrudList } from '@/components/CrudList';
 import { useStore } from '@/hooks/useStore';
 import {
-  riskCategoriesStore, risksStore, examsStore, safetyMeasuresStore,
-  riskExamsStore, riskMeasuresStore,
+  riskCategoriesStore, risksStore,
 } from '@/lib/storage';
 import type { Risk, RiskCategory } from '@/lib/storage';
 import { RiskBadge } from '@/lib/riskColors';
@@ -15,8 +14,6 @@ import { RiskAssociations } from '@/components/RiskAssociations';
 export default function Riscos() {
   const riskCategories = useStore(riskCategoriesStore);
   const risks = useStore(risksStore);
-  const riskExams = useStore(riskExamsStore);
-  const riskMeasures = useStore(riskMeasuresStore);
   const [search, setSearch] = useState('');
 
   // Categorias A-Z, mas "other" (Outros) sempre no fim
@@ -111,16 +108,9 @@ export default function Riscos() {
         }}
         renderExtra={(item) => {
           const cat = riskCategories.items.find(c => c.id === item.categoryId);
-          const myExams = riskExams.items.filter(re => re.riskId === item.id);
-          const myMeasures = riskMeasures.items.filter(rm => rm.riskId === item.id);
           return (
             <div className="mt-1">
               {cat && <RiskBadge type={cat.type} label={cat.name} />}
-              <div className="flex gap-2 mt-2 text-xs text-muted-foreground">
-                <span>{myExams.length} exame{myExams.length !== 1 ? 's' : ''}</span>
-                <span>·</span>
-                <span>{myMeasures.length} medida{myMeasures.length !== 1 ? 's' : ''}</span>
-              </div>
               <RiskAssociations riskId={item.id} />
             </div>
           );
