@@ -22,6 +22,8 @@ const ICON_MAP: Record<string, LucideIcon> = {
   exames: Stethoscope,
   medidas: Shield,
   profissionais: UserCheck,
+  cargos: UserCheck,
+  setores: Building2,
   epis: HardHat,
   treinamentos: GraduationCap,
   configuracoes: Settings,
@@ -36,12 +38,14 @@ const ROUTE_MAP: Record<string, string> = {
   exames: '/exames',
   medidas: '/medidas',
   profissionais: '/profissionais',
+  cargos: '/cargos',
+  setores: '/setores',
   epis: '/epis',
   treinamentos: '/treinamentos',
   configuracoes: '/configuracoes',
 };
 
-const CADASTRO_KEYS = ['riscos', 'exames', 'medidas', 'profissionais'];
+const CADASTRO_KEYS = ['riscos', 'exames', 'medidas', 'profissionais', 'cargos', 'setores'];
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();

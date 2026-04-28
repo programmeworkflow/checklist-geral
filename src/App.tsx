@@ -17,6 +17,8 @@ import Epis from "./pages/Epis";
 import Treinamentos from "./pages/Treinamentos";
 import Exames from "./pages/Exames";
 import Profissionais from "./pages/Profissionais";
+import Cargos from "./pages/Cargos";
+import Setores from "./pages/Setores";
 import Relatorios from "./pages/Relatorios";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -45,6 +47,8 @@ const App = () => {
             <Route path="/epis" element={<Epis />} />
             <Route path="/exames" element={<Exames />} />
             <Route path="/profissionais" element={<Profissionais />} />
+            <Route path="/cargos" element={<Cargos />} />
+            <Route path="/setores" element={<Setores />} />
             <Route path="/treinamentos" element={<Treinamentos />} />
             <Route path="/configuracoes" element={<Settings />} />
             <Route path="/settings" element={<Settings />} />
