@@ -23,6 +23,7 @@ import { exportReportToPdf } from '@/lib/exportPdf';
 import { exportReportToExcel } from '@/lib/exportExcel';
 import { safeUploadFile, uploadBase64 } from '@/lib/uploadFile';
 import { FileSpreadsheet, FileDown } from 'lucide-react';
+import { SignaturePad } from '@/components/SignaturePad';
 
 type Step = 'select' | 'fill';
 type MeasureStatus = 0 | 1 | 2 | 3;
@@ -1317,9 +1318,10 @@ const Checklist = () => {
                             <SpeechInput value={value} onChange={onChange} placeholder={field.label} className="mt-1" />
                           )}
                           {field.type === 'signature' && (
-                            <div className="mt-1 border border-input rounded-md p-4 text-center text-sm text-muted-foreground">
-                              Assinatura (em desenvolvimento)
-                            </div>
+                            <SignaturePad
+                              value={value || ''}
+                              onChange={(dataUrl) => onChange(dataUrl || '')}
+                            />
                           )}
                           {field.type === 'user_select' && (
                             <Input value={value} onChange={e => onChange(e.target.value)} className="mt-1" placeholder="Nome do técnico..." />

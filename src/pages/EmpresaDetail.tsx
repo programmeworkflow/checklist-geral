@@ -190,7 +190,7 @@ export default function EmpresaDetail() {
           <Plus className="h-4 w-4 mr-1" /> Novo Setor
         </Button>
         <Button size="sm" variant="outline" onClick={() => setShowImport(!showImport)}>
-          📥 Importar Setores/Cargos
+          📥 Importar Ambientes/Cargos
         </Button>
       </div>
 

@@ -14,7 +14,7 @@ interface ExcelImportProps {
 
 interface ParsedRow {
   row: number;
-  setor: string;
+  setor: string; // armazenado como setor no banco; importado da coluna "Ambiente" ou "Setor"
   cargo: string;
   error?: string;
 }
@@ -47,10 +47,14 @@ export function ExcelImport({ companyId, companyName, onComplete }: ExcelImportP
           const cargo = String(row?.[1] || '').trim();
 
           if (!setor && !cargo) continue;
-          // Skip header row
-          if (i === 0 && (setor.toLowerCase() === 'setor' || cargo.toLowerCase() === 'cargo')) continue;
+          // Skip header row (aceita "Setor", "Ambiente", "Cargo")
+          if (i === 0) {
+            const a = setor.toLowerCase();
+            const b = cargo.toLowerCase();
+            if (a === 'setor' || a === 'ambiente' || b === 'cargo' || b === 'função' || b === 'funcao') continue;
+          }
 
-          const error = !setor ? 'Setor vazio' : !cargo ? 'Cargo vazio' : undefined;
+          const error = !setor ? 'Ambiente vazio' : !cargo ? 'Cargo vazio' : undefined;
           rows.push({ row: i + 1, setor, cargo, error });
         }
 
@@ -76,7 +80,7 @@ export function ExcelImport({ companyId, companyName, onComplete }: ExcelImportP
       const existingSectors = await sectorsStore.getAll();
       const existingFunctions = await functionsStore.getAll();
 
-      let sectorsCreated = 0;
+      let ambientesCreated = 0;
       let functionsCreated = 0;
       const sectorMap = new Map<string, string>();
 
@@ -92,7 +96,7 @@ export function ExcelImport({ companyId, companyName, onComplete }: ExcelImportP
           const newSector = await sectorsStore.add({ name: r.setor, companyId } as any);
           sectorId = newSector.id;
           sectorMap.set(r.setor.toLowerCase(), sectorId);
-          sectorsCreated++;
+          ambientesCreated++;
         }
 
         // Check duplicate function
@@ -109,7 +113,7 @@ export function ExcelImport({ companyId, companyName, onComplete }: ExcelImportP
       setPreview(null);
 
       toast.success(
-        `Importação concluída: ${sectorsCreated} setor(es) e ${functionsCreated} cargo(s) criados.` +
+        `Importação concluída: ${ambientesCreated} ambiente(s) e ${functionsCreated} cargo(s) criados.` +
         (errors.length > 0 ? ` ${errors.length} linha(s) ignorada(s).` : '')
       );
       onComplete();
@@ -131,10 +135,10 @@ export function ExcelImport({ companyId, companyName, onComplete }: ExcelImportP
         <div className="text-center space-y-3">
           <FileSpreadsheet className="h-10 w-10 mx-auto text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
-            Importar setores e cargos para <strong className="text-foreground">{companyName}</strong>
+            Importar ambientes e cargos para <strong className="text-foreground">{companyName}</strong>
           </p>
           <p className="text-xs text-muted-foreground">
-            Planilha .xlsx · Coluna A: Setor · Coluna B: Cargo
+            Planilha .xlsx · Coluna A: <strong>Ambiente</strong> · Coluna B: <strong>Cargo</strong>
           </p>
           <Button onClick={() => fileRef.current?.click()} className="min-h-[44px]">
             <Upload className="h-4 w-4 mr-2" /> Selecionar planilha
@@ -159,7 +163,7 @@ export function ExcelImport({ companyId, companyName, onComplete }: ExcelImportP
               <thead className="bg-muted sticky top-0">
                 <tr>
                   <th className="px-2 py-1.5 text-left">Linha</th>
-                  <th className="px-2 py-1.5 text-left">Setor</th>
+                  <th className="px-2 py-1.5 text-left">Ambiente</th>
                   <th className="px-2 py-1.5 text-left">Cargo</th>
                   <th className="px-2 py-1.5 text-left">Status</th>
                 </tr>
