@@ -532,13 +532,12 @@ const Checklist = () => {
   const activeRiskMeasures = activeRiskId ? getMeasuresForRisk(activeRiskId) : [];
   const activeRiskExams = activeRiskId ? getExamsForRisk(activeRiskId) : [];
 
-  const handleExportPdf = async () => {
+  const handleExportPdf = async (mode: 'download' | 'share' = 'download') => {
     if (!reportRef.current) return;
     setExporting(true);
     try {
       const filename = `relatorio_${company?.name?.replace(/\s+/g, '_') || 'checklist'}`;
-      await exportReportToPdf(reportRef.current, filename);
-      toast.success('PDF gerado com sucesso!');
+      await exportReportToPdf(reportRef.current, filename, mode);
     } catch (err) {
       console.error(err);
       toast.error('Erro ao gerar PDF.');
@@ -623,7 +622,6 @@ const Checklist = () => {
         epis: epiList,
         trainings: trainingList,
       });
-      toast.success('Excel gerado com sucesso!');
     } catch (err) {
       console.error(err);
       toast.error('Erro ao gerar Excel.');
@@ -942,8 +940,11 @@ const Checklist = () => {
             <Button onClick={handleSave} className="flex-1 min-w-[160px] bg-green-600 hover:bg-green-700 text-white" size="lg">
               <Save className="h-4 w-4 mr-2" /> Salvar Checklist
             </Button>
-            <Button variant="outline" size="lg" onClick={handleExportPdf} disabled={exporting}>
+            <Button variant="outline" size="lg" onClick={() => handleExportPdf('download')} disabled={exporting}>
               <FileDown className="h-4 w-4 mr-2" /> {exporting ? 'Gerando...' : 'Baixar PDF'}
+            </Button>
+            <Button variant="outline" size="lg" onClick={() => handleExportPdf('share')} disabled={exporting}>
+              <Share2 className="h-4 w-4 mr-2" /> Compartilhar
             </Button>
             <Button variant="outline" size="lg" onClick={handleExportExcel}>
               <FileSpreadsheet className="h-4 w-4 mr-2" /> Baixar Excel

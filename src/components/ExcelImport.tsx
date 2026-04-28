@@ -46,13 +46,9 @@ export function ExcelImport({ companyId, companyName, onComplete }: ExcelImportP
           const setor = String(row?.[0] || '').trim();
           const cargo = String(row?.[1] || '').trim();
 
+          // Sempre ignora a linha 1 (cabeçalho)
+          if (i === 0) continue;
           if (!setor && !cargo) continue;
-          // Skip header row (aceita "Setor", "Ambiente", "Cargo")
-          if (i === 0) {
-            const a = setor.toLowerCase();
-            const b = cargo.toLowerCase();
-            if (a === 'setor' || a === 'ambiente' || b === 'cargo' || b === 'função' || b === 'funcao') continue;
-          }
 
           const error = !setor ? 'Ambiente vazio' : !cargo ? 'Cargo vazio' : undefined;
           rows.push({ row: i + 1, setor, cargo, error });

@@ -1,8 +1,8 @@
+import { useMemo } from 'react';
 import { CrudList } from '@/components/CrudList';
 import { useStore } from '@/hooks/useStore';
 import { functionsStore, sectorsStore, companiesStore } from '@/lib/storage';
 import type { JobFunction } from '@/lib/storage';
-import { SpeechInput } from '@/components/SpeechInput';
 import { Users } from 'lucide-react';
 
 export default function Cargos() {
@@ -10,10 +10,31 @@ export default function Cargos() {
   const sectors = useStore(sectorsStore);
   const companies = useStore(companiesStore);
 
-  const sectorOptions = sectors.items.map(s => ({
-    value: s.id,
-    label: `${s.name} (${companies.items.find(c => c.id === s.companyId)?.name || '?'})`,
-  }));
+  const sectorById = useMemo(() => {
+    const m = new Map<string, { name: string; companyName: string }>();
+    sectors.items.forEach(s => {
+      const co = companies.items.find(c => c.id === s.companyId);
+      m.set(s.id, { name: s.name, companyName: co?.name || '?' });
+    });
+    return m;
+  }, [sectors.items, companies.items]);
+
+  const sectorOptions = useMemo(() => sectors.items
+    .map(s => {
+      const co = companies.items.find(c => c.id === s.companyId);
+      return { value: s.id, label: `${s.name} (${co?.name || '?'})` };
+    })
+    .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'))
+  , [sectors.items, companies.items]);
+
+  // Lista plana ordenada por NOME DO SETOR (A-Z) e dentro do setor pelo nome do cargo
+  const sortedFunctions = useMemo(() => [...functions.items].sort((a, b) => {
+    const sa = sectorById.get(a.sectorId)?.name || '';
+    const sb = sectorById.get(b.sectorId)?.name || '';
+    const cmp = sa.localeCompare(sb, 'pt-BR');
+    if (cmp !== 0) return cmp;
+    return a.name.localeCompare(b.name, 'pt-BR');
+  }), [functions.items, sectorById]);
 
   return (
     <div className="p-4 md:p-6 max-w-3xl mx-auto space-y-4">
@@ -21,29 +42,25 @@ export default function Cargos() {
         <Users className="h-6 w-6" /> Cargos
       </h1>
       <CrudList<JobFunction>
-        title="Funções / Cargos"
-        items={functions.items}
+        title="Cargos"
+        items={sortedFunctions}
+        selectable
         fields={[
-          { key: 'name', label: 'Nome da função' },
+          { key: 'name', label: 'Nome do cargo' },
           { key: 'sectorId', label: 'Setor', type: 'select', options: sectorOptions },
         ]}
         onAdd={functions.add}
         onUpdate={functions.update}
         onDelete={functions.remove}
-        renderExtra={(item) => (
-          <div className="mt-2 space-y-2">
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">📝 Descrição do cargo</p>
-              <SpeechInput
-                value={item.description || ''}
-                onChange={(val) => { functions.update(item.id, { description: val } as any); functions.refresh(); }}
-                placeholder="Descreva as atribuições do cargo..."
-                multiline
-                rows={3}
-              />
-            </div>
-          </div>
-        )}
+        renderName={(item) => {
+          const s = sectorById.get(item.sectorId);
+          return (
+            <p className="font-semibold text-foreground">
+              {item.name}
+              {s && <span className="text-muted-foreground font-normal"> ({s.name})</span>}
+            </p>
+          );
+        }}
       />
     </div>
   );

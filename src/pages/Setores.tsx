@@ -19,6 +19,7 @@ export default function Setores() {
       <CrudList<Sector>
         title="GSE / Setores"
         items={sectors.items}
+        selectable
         fields={[
           { key: 'name', label: 'Nome do setor' },
           { key: 'companyId', label: 'Empresa', type: 'select', options: companyOptions },

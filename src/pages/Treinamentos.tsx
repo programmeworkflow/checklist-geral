@@ -14,6 +14,7 @@ export default function Treinamentos() {
       <CrudList
         title="Treinamentos"
         items={trainings.items}
+        selectable
         fields={[{ key: 'name', label: 'Nome do treinamento' }, { key: 'description', label: 'Descrição' }]}
         onAdd={trainings.add}
         onUpdate={trainings.update}

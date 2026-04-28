@@ -79,7 +79,7 @@ export default function Epis() {
                 </div>
                 <div className="flex gap-1">
                   <Button variant="ghost" size="icon" onClick={() => startEdit(item)}><Pencil className="h-4 w-4" /></Button>
-                  <Button variant="ghost" size="icon" onClick={() => epis.remove(item.id)}><Trash2 className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" onClick={() => { if (confirm(`Excluir EPI "${item.name}"?`)) epis.remove(item.id); }}><Trash2 className="h-4 w-4" /></Button>
                 </div>
               </div>
             )}

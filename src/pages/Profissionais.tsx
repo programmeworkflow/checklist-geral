@@ -27,6 +27,7 @@ export default function Profissionais() {
       <CrudList<Professional>
         title="Profissionais"
         items={filtered}
+        selectable
         fields={[
           { key: 'name', label: 'Nome' },
           { key: 'formation', label: 'Formação' },

@@ -8,7 +8,9 @@ const CONTENT_W = A4_W - MARGIN * 2;
 const CONTENT_H = A4_H - MARGIN * 2;
 const HEADER_H = 12; // mm reserved for page header/footer
 
-export async function exportReportToPdf(element: HTMLElement, filename = 'relatorio') {
+export type PdfMode = 'download' | 'share';
+
+export async function exportReportToPdf(element: HTMLElement, filename = 'relatorio', mode: PdfMode = 'download') {
   const isDark = document.documentElement.classList.contains('dark');
   if (isDark) document.documentElement.classList.remove('dark');
   await new Promise(r => setTimeout(r, 150));
@@ -111,12 +113,15 @@ export async function exportReportToPdf(element: HTMLElement, filename = 'relato
   const pdfBlob = pdf.output('blob');
   const pdfFile = new File([pdfBlob], `${filename}.pdf`, { type: 'application/pdf' });
 
-  if (navigator.share && navigator.canShare?.({ files: [pdfFile] })) {
-    try {
-      await navigator.share({ title: filename, files: [pdfFile] });
-      return;
-    } catch (err) {
-      if ((err as Error).name === 'AbortError') return;
+  if (mode === 'share') {
+    if (navigator.share && navigator.canShare?.({ files: [pdfFile] })) {
+      try {
+        await navigator.share({ title: filename, files: [pdfFile] });
+        return;
+      } catch (err) {
+        if ((err as Error).name === 'AbortError') return;
+        // fallback para download em caso de outro erro
+      }
     }
   }
 
