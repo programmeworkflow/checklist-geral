@@ -1,21 +1,40 @@
 import { useState, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useStore } from '@/hooks/useStore';
-import { safetyMeasuresStore } from '@/lib/storage';
+import { safetyMeasuresStore, riskMeasuresStore, risksStore } from '@/lib/storage';
 import type { SafetyMeasure } from '@/lib/storage';
-import { Shield } from 'lucide-react';
+import { Shield, Copy } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { CrudList } from '@/components/CrudList';
 import { SearchInput } from '@/components/SearchInput';
 import { GenericExcelImport } from '@/components/GenericExcelImport';
+import { toast } from 'sonner';
 
 export default function Medidas() {
+  const qc = useQueryClient();
   const measures = useStore(safetyMeasuresStore);
   const [search, setSearch] = useState('');
+  const { data: allRiskMeasures = [] } = useQuery({ queryKey: ['risk_measures'], queryFn: () => riskMeasuresStore.getAll() });
+  const { data: allRisks = [] } = useQuery({ queryKey: ['risks'], queryFn: () => risksStore.getAll() });
 
   const filteredMeasures = useMemo(() => {
     const sorted = [...measures.items].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
     if (!search) return sorted;
     return sorted.filter(m => m.name.toLowerCase().includes(search.toLowerCase()));
   }, [measures.items, search]);
+
+  // Para cada medida, lista riscos vinculados (legacy + junction)
+  const measureRiskNames = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const m of measures.items) {
+      const ids = new Set<string>();
+      if (m.riskId) ids.add(m.riskId);
+      allRiskMeasures.filter(rm => rm.measureId === m.id).forEach(rm => ids.add(rm.riskId));
+      const names = [...ids].map(id => allRisks.find(r => r.id === id)?.name).filter((n): n is string => !!n);
+      map.set(m.id, names);
+    }
+    return map;
+  }, [measures.items, allRiskMeasures, allRisks]);
 
   const handleImport = async (rows: Record<string, string>[]) => {
     let created = 0;
@@ -29,6 +48,12 @@ export default function Medidas() {
     }
     measures.refresh();
     return { created, skipped };
+  };
+
+  const handleDuplicate = async (item: SafetyMeasure) => {
+    await safetyMeasuresStore.add({ name: `${item.name} (cópia)` } as any);
+    qc.invalidateQueries({ queryKey: ['safety_measures'] });
+    toast.success('Medida duplicada');
   };
 
   return (
@@ -52,6 +77,29 @@ export default function Medidas() {
         onAdd={(data) => measures.add(data as any)}
         onUpdate={measures.update}
         onDelete={measures.remove}
+        renderExtra={(item) => {
+          const names = measureRiskNames.get(item.id) || [];
+          if (names.length === 0) return null;
+          return (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {names.slice(0, 3).map((n, i) => (
+                <Badge key={i} variant="outline" className="text-[10px]">{n}</Badge>
+              ))}
+              {names.length > 3 && (
+                <Badge variant="outline" className="text-[10px]">+{names.length - 3}</Badge>
+              )}
+            </div>
+          );
+        }}
+        extraActions={(item) => (
+          <button
+            className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            onClick={(e) => { e.stopPropagation(); handleDuplicate(item); }}
+            title="Duplicar medida"
+          >
+            <Copy className="h-3.5 w-3.5" />
+          </button>
+        )}
       />
 
       <hr className="border-border" />

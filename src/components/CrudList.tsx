@@ -24,13 +24,15 @@ interface CrudListProps<T extends { id: string }> {
   onReorder?: (reorderedItems: T[]) => void;
   renderExtra?: (item: T) => React.ReactNode;
   renderName?: (item: T) => React.ReactNode;
+  /** Botões extras (ex: duplicar) renderizados antes de editar/excluir */
+  extraActions?: (item: T) => React.ReactNode;
   /** Habilita seleção múltipla com botão de exclusão em massa */
   selectable?: boolean;
 }
 
 export function CrudList<T extends { id: string }>({
   title, items, fields, onAdd, onUpdate, onDelete, onReorder, renderExtra, renderName,
-  selectable = false,
+  extraActions, selectable = false,
 }: CrudListProps<T>) {
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
@@ -239,6 +241,7 @@ export function CrudList<T extends { id: string }>({
                       </button>
                     </>
                   )}
+                  {extraActions?.(item)}
                   <button
                     className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                     onClick={() => startEdit(item)}
