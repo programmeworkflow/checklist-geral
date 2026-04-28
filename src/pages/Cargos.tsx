@@ -46,8 +46,8 @@ export default function Cargos() {
         items={sortedFunctions}
         selectable
         fields={[
-          { key: 'name', label: 'Nome do cargo' },
-          { key: 'sectorId', label: 'Setor', type: 'select', options: sectorOptions },
+          { key: 'name', label: 'Nome do cargo', hidden: true },
+          { key: 'sectorId', label: 'Setor', type: 'select', options: sectorOptions, hidden: true },
         ]}
         onAdd={functions.add}
         onUpdate={functions.update}
