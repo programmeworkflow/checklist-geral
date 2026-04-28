@@ -4,11 +4,11 @@ import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import {
   ClipboardList, Building2, AlertTriangle, CheckCircle2, XCircle, Plus,
-  TrendingUp, ArrowUpRight, Shield, BarChart3,
+  TrendingUp, ArrowUpRight, Shield, BarChart3, Stethoscope, Users,
 } from 'lucide-react';
 import {
   checklistsStore, companiesStore, risksStore, riskCategoriesStore,
-  safetyMeasuresStore,
+  safetyMeasuresStore, examsStore, professionalsStore,
 } from '@/lib/storage';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -24,6 +24,8 @@ export default function Dashboard() {
   const { data: risks = [] } = useQuery({ queryKey: ['risks'], queryFn: () => risksStore.getAll() });
   const { data: categories = [] } = useQuery({ queryKey: ['riskCategories'], queryFn: () => riskCategoriesStore.getAll() });
   const { data: measures = [] } = useQuery({ queryKey: ['safetyMeasures'], queryFn: () => safetyMeasuresStore.getAll() });
+  const { data: exams = [] } = useQuery({ queryKey: ['exams'], queryFn: () => examsStore.getAll() });
+  const { data: professionals = [] } = useQuery({ queryKey: ['professionals'], queryFn: () => professionalsStore.getAll() });
 
   const stats = useMemo(() => {
     let conformities = 0, nonConformities = 0;
@@ -40,8 +42,23 @@ export default function Dashboard() {
       const count = risks.filter(r => r.categoryId === cat.id).reduce((s, r) => s + (riskFreq[r.id] || 0), 0);
       return { name: cat.name, count, type: cat.type };
     }).filter(c => c.count > 0);
-    return { conformities, nonConformities, catFreq };
-  }, [checklists, risks, categories, measures]);
+
+    // Checklists por técnico (top 5)
+    const tecnicoCount: Record<string, number> = {};
+    checklists.forEach(cl => {
+      const tid = (cl.formData as any)?.tecnicoId || (cl.formData as any)?.tecnico;
+      if (tid) tecnicoCount[tid] = (tecnicoCount[tid] || 0) + 1;
+    });
+    const tecnicoRanking = Object.entries(tecnicoCount)
+      .map(([id, count]) => {
+        const prof = professionals.find(p => p.id === id);
+        return { id, name: prof?.name || id, count };
+      })
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    return { conformities, nonConformities, catFreq, tecnicoRanking };
+  }, [checklists, risks, categories, measures, professionals]);
 
   const pieData = [
     { name: 'Conformidades', value: stats.conformities || 0 },
@@ -67,7 +84,7 @@ export default function Dashboard() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
         <KpiCard
           icon={ClipboardList}
           label="Checklists"
@@ -88,7 +105,7 @@ export default function Dashboard() {
         />
         <KpiCard
           icon={AlertTriangle}
-          label="Riscos Cadastrados"
+          label="Riscos"
           value={risks.length}
           color="from-[#D97706]/15 to-[#D97706]/5"
           iconBg="bg-[#D97706]/15"
@@ -96,8 +113,17 @@ export default function Dashboard() {
           link="/riscos"
         />
         <KpiCard
+          icon={Stethoscope}
+          label="Exames"
+          value={exams.length}
+          color="from-[#7C3AED]/15 to-[#7C3AED]/5"
+          iconBg="bg-[#7C3AED]/15"
+          iconColor="text-[#7C3AED]"
+          link="/exames"
+        />
+        <KpiCard
           icon={Shield}
-          label="Taxa Conformidade"
+          label="Conformidade"
           value={conformRate}
           suffix="%"
           color="from-[#1A6FB5]/15 to-[#1A6FB5]/5"
@@ -174,6 +200,42 @@ export default function Dashboard() {
           )}
         </Card>
       </div>
+
+      {/* Checklists por Técnico */}
+      <Card className="card-interactive p-5 md:p-6">
+        <div className="flex items-center gap-2 mb-5">
+          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Users className="h-4 w-4 text-primary" />
+          </div>
+          <h3 className="text-sm font-semibold text-foreground">Checklists por Técnico</h3>
+        </div>
+        {stats.tecnicoRanking.length === 0 ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">
+            Nenhum checklist com técnico vinculado ainda.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {stats.tecnicoRanking.map((t, i) => {
+              const max = stats.tecnicoRanking[0].count;
+              const pct = (t.count / max) * 100;
+              return (
+                <div key={t.id} className="flex items-center gap-3">
+                  <div className="text-xs font-bold text-muted-foreground w-6">{i + 1}º</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium text-foreground truncate">{t.name}</span>
+                      <span className="text-xs font-semibold text-primary shrink-0 ml-2">{t.count}</span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-full" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Card>
     </div>
   );
 }

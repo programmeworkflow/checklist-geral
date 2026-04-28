@@ -10,7 +10,7 @@ import {
   companiesStore, sectorsStore, functionsStore,
   riskCategoriesStore, risksStore, episStore, trainingsStore,
   checklistBlocksStore, checklistsStore, examsStore, safetyMeasuresStore,
-  blockFieldsStore, FieldType,
+  blockFieldsStore, professionalsStore, FieldType,
 } from '@/lib/storage';
 import { ArrowLeft, ArrowRight, Save, Camera, ImagePlus, Paperclip, X, Stethoscope, Shield, FileBarChart, ChevronRight, Trash2, Share2, Plus } from 'lucide-react';
 import { SpeechInput } from '@/components/SpeechInput';
@@ -200,20 +200,28 @@ const Checklist = () => {
   const { data: allMeasures = [] } = useQuery({ queryKey: ['safety_measures'], queryFn: () => safetyMeasuresStore.getAll() });
   const { data: allBlockFields = [] } = useQuery({ queryKey: ['block_fields'], queryFn: () => blockFieldsStore.getAll() });
   const { data: allBlocks = [] } = useQuery({ queryKey: ['checklist_blocks'], queryFn: () => checklistBlocksStore.getAll() });
+  const { data: professionals = [] } = useQuery({ queryKey: ['professionals'], queryFn: () => professionalsStore.getAll() });
   const blocks = useMemo(() => allBlocks.filter(b => b.visible !== false).sort((a, b) => a.order - b.order), [allBlocks]);
+
+  // Categorias ordenadas A-Z, "other" sempre por último
+  const sortedRiskCategories = useMemo(() => [...riskCategories].sort((a, b) => {
+    if (a.type === 'other' && b.type !== 'other') return 1;
+    if (b.type === 'other' && a.type !== 'other') return -1;
+    return a.name.localeCompare(b.name, 'pt-BR');
+  }), [riskCategories]);
 
   // Initialize openCategoryId once riskCategories load
   useEffect(() => {
-    if (riskCategories.length > 0 && openCategoryId === null) {
-      const chemical = riskCategories.find(c => c.type === 'chemical');
-      setOpenCategoryId(chemical?.id || riskCategories[0]?.id || null);
+    if (sortedRiskCategories.length > 0 && openCategoryId === null) {
+      setOpenCategoryId(sortedRiskCategories[0]?.id || null);
     }
-  }, [riskCategories]);
+  }, [sortedRiskCategories]);
 
   const companySectors = useMemo(() => allSectors.filter(s => s.companyId === companyId), [companyId, allSectors]);
   const sectorFunctions = useMemo(() => allFunctions.filter(f => f.sectorId === sectorId), [sectorId, allFunctions]);
 
-  const canProceed = companyId && sectorId && selectedFunctionIds.length > 0;
+  const tecnicoId = formData.tecnicoId || '';
+  const canProceed = companyId && sectorId && selectedFunctionIds.length > 0 && tecnicoId;
   const handleProceed = () => { if (canProceed) setStep('fill'); };
   const toggleFunction = (id: string) => {
     setSelectedFunctionIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -346,6 +354,24 @@ const Checklist = () => {
       <div className="p-4 max-w-lg mx-auto pb-24">
         <h1 className="text-2xl font-bold text-foreground mb-6">Novo Checklist</h1>
         <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium text-muted-foreground">Profissional Responsável <span className="text-destructive">*</span></label>
+            <select
+              className="w-full mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={tecnicoId}
+              onChange={e => setFormData({ ...formData, tecnicoId: e.target.value })}
+            >
+              <option value="">-- Selecione --</option>
+              {professionals.map(p => (
+                <option key={p.id} value={p.id}>{p.name}{p.formation ? ` — ${p.formation}` : ''}</option>
+              ))}
+            </select>
+            {professionals.length === 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Nenhum profissional cadastrado. Cadastre em <a href="/profissionais" className="text-primary underline">Profissionais</a>.
+              </p>
+            )}
+          </div>
           <div>
             <label className="text-sm font-medium text-muted-foreground">Empresa</label>
             <select className="w-full mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm" value={companyId}
@@ -863,8 +889,8 @@ const Checklist = () => {
                 <Card key={block.id} className="p-0 overflow-hidden">
                   <h2 className="bg-muted text-foreground px-4 py-3 font-semibold text-base">{block.name}</h2>
                   <div className="p-3 md:p-4 space-y-2">
-                    {riskCategories.map(cat => {
-                      const catRisks = risks.filter(r => r.categoryId === cat.id);
+                    {sortedRiskCategories.map(cat => {
+                      const catRisks = [...risks.filter(r => r.categoryId === cat.id)].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
                       if (catRisks.length === 0) return null;
                       const colors = getRiskColor(cat.type);
                       const isOpen = openCategoryId === cat.id;

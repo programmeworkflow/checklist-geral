@@ -18,17 +18,31 @@ export default function Riscos() {
   const safetyMeasures = useStore(safetyMeasuresStore);
   const [search, setSearch] = useState('');
 
-  const categoryOptions = riskCategories.items.map(c => ({ value: c.id, label: c.name }));
+  // Categorias A-Z, mas "other" (Outros) sempre no fim
+  const sortedCategories = [...riskCategories.items].sort((a, b) => {
+    if (a.type === 'other' && b.type !== 'other') return 1;
+    if (b.type === 'other' && a.type !== 'other') return -1;
+    return a.name.localeCompare(b.name, 'pt-BR');
+  });
 
-  const makeReorder = <T extends { id: string }>(store: { setAll: (items: T[]) => Promise<void> }, refresh: () => void) => {
-    return async (reordered: T[]) => { await store.setAll(reordered); refresh(); };
-  };
+  const categoryOptions = sortedCategories.map(c => ({ value: c.id, label: c.name }));
 
   const filteredRisks = risks.items.filter(r => {
     if (!search) return true;
     const q = search.toLowerCase();
     const cat = riskCategories.items.find(c => c.id === r.categoryId);
     return r.name.toLowerCase().includes(q) || (cat?.name || '').toLowerCase().includes(q);
+  });
+
+  // Riscos: ordenar por categoria (A-Z, Outros no fim) e dentro da categoria A-Z
+  const sortedRisks = [...filteredRisks].sort((a, b) => {
+    const catA = riskCategories.items.find(c => c.id === a.categoryId);
+    const catB = riskCategories.items.find(c => c.id === b.categoryId);
+    if (catA?.type === 'other' && catB?.type !== 'other') return 1;
+    if (catB?.type === 'other' && catA?.type !== 'other') return -1;
+    const catCmp = (catA?.name || '').localeCompare(catB?.name || '', 'pt-BR');
+    if (catCmp !== 0) return catCmp;
+    return a.name.localeCompare(b.name, 'pt-BR');
   });
 
   const handleRiskImport = async (rows: Record<string, string>[]) => {
@@ -60,7 +74,7 @@ export default function Riscos() {
 
       <CrudList<RiskCategory>
         title="Categorias de Risco"
-        items={riskCategories.items}
+        items={sortedCategories}
         fields={[
           { key: 'name', label: 'Nome da categoria', hidden: true },
           { key: 'type', label: 'Tipo', type: 'select', options: [
@@ -69,18 +83,19 @@ export default function Riscos() {
             { value: 'biological', label: 'Biológico' },
             { value: 'ergonomic', label: 'Ergonômico' },
             { value: 'accident', label: 'Acidente' },
+            { value: 'other', label: 'Outros' },
           ], hidden: true },
         ]}
         onAdd={riskCategories.add}
         onUpdate={riskCategories.update}
         onDelete={(id) => { riskCategories.remove(id); risks.items.filter(r => r.categoryId === id).forEach(r => risks.remove(r.id)); }}
-        onReorder={makeReorder(riskCategoriesStore, riskCategories.refresh)}
         renderName={(item) => <RiskBadge type={item.type} label={item.name} />}
       />
       <hr className="border-border" />
       <CrudList<Risk>
         title="Riscos"
-        items={filteredRisks}
+        items={sortedRisks}
+        selectable
         fields={[
           { key: 'name', label: 'Nome do risco' },
           { key: 'categoryId', label: 'Categoria', type: 'select', options: categoryOptions, hidden: true },
@@ -94,7 +109,6 @@ export default function Riscos() {
           exams.items.filter(e => e.riskId === id).forEach(e => exams.remove(e.id));
           safetyMeasures.items.filter(m => m.riskId === id).forEach(m => safetyMeasures.remove(m.id));
         }}
-        onReorder={makeReorder(risksStore, risks.refresh)}
         renderExtra={(item) => {
           const cat = riskCategories.items.find(c => c.id === item.categoryId);
           const riskExams = exams.items.filter(e => e.riskId === item.id);
