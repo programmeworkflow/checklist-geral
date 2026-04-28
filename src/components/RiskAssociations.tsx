@@ -4,7 +4,7 @@ import {
   examsStore, safetyMeasuresStore, riskExamsStore, riskMeasuresStore,
 } from '@/lib/storage';
 import type { OccupationalExam, SafetyMeasure, RiskExam } from '@/lib/storage';
-import { Stethoscope, Shield, Plus, X, Check, ChevronDown } from 'lucide-react';
+import { Stethoscope, Shield, Plus, X, ChevronDown, Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card } from '@/components/ui/card';
@@ -20,6 +20,7 @@ export function RiskAssociations({ riskId }: Props) {
   const qc = useQueryClient();
   const [tab, setTab] = useState<'exames' | 'medidas'>('exames');
   const [picking, setPicking] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   const { data: allExams = [] } = useQuery({ queryKey: ['exams'], queryFn: () => examsStore.getAll() });
   const { data: allMeasures = [] } = useQuery({ queryKey: ['safety_measures'], queryFn: () => safetyMeasuresStore.getAll() });
@@ -78,7 +79,20 @@ export function RiskAssociations({ riskId }: Props) {
   ];
 
   return (
-    <div className="space-y-3 mt-3 pt-3 border-t border-border">
+    <div className="mt-2">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full inline-flex items-center justify-between gap-2 text-xs text-muted-foreground hover:text-foreground py-1.5 px-2 rounded-md hover:bg-muted transition-colors"
+      >
+        <span className="inline-flex items-center gap-2">
+          <Settings2 className="h-3.5 w-3.5" />
+          <span>{myExams.length} exame{myExams.length !== 1 ? 's' : ''} · {myMeasures.length} medida{myMeasures.length !== 1 ? 's' : ''}</span>
+        </span>
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+      </button>
+
+      {!expanded ? null : (
+      <div className="space-y-3 mt-3 pt-3 border-t border-border">
       <div className="flex gap-1">
         <button
           onClick={() => setTab('exames')}
@@ -216,6 +230,8 @@ export function RiskAssociations({ riskId }: Props) {
             </Card>
           )}
         </div>
+      )}
+      </div>
       )}
     </div>
   );

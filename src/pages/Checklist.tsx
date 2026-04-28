@@ -10,7 +10,8 @@ import {
   companiesStore, sectorsStore, functionsStore,
   riskCategoriesStore, risksStore, episStore, trainingsStore,
   checklistBlocksStore, checklistsStore, examsStore, safetyMeasuresStore,
-  blockFieldsStore, professionalsStore, FieldType,
+  blockFieldsStore, professionalsStore, riskExamsStore, riskMeasuresStore,
+  FieldType,
 } from '@/lib/storage';
 import { ArrowLeft, ArrowRight, Save, Camera, ImagePlus, Paperclip, X, Stethoscope, Shield, FileBarChart, ChevronRight, Trash2, Share2, Plus } from 'lucide-react';
 import { SpeechInput } from '@/components/SpeechInput';
@@ -204,6 +205,8 @@ const Checklist = () => {
   const { data: trainings = [] } = useQuery({ queryKey: ['trainings'], queryFn: () => trainingsStore.getAll() });
   const { data: allExams = [] } = useQuery({ queryKey: ['exams'], queryFn: () => examsStore.getAll() });
   const { data: allMeasures = [] } = useQuery({ queryKey: ['safety_measures'], queryFn: () => safetyMeasuresStore.getAll() });
+  const { data: allRiskExams = [] } = useQuery({ queryKey: ['risk_exams'], queryFn: () => riskExamsStore.getAll() });
+  const { data: allRiskMeasures = [] } = useQuery({ queryKey: ['risk_measures'], queryFn: () => riskMeasuresStore.getAll() });
   const { data: allBlockFields = [] } = useQuery({ queryKey: ['block_fields'], queryFn: () => blockFieldsStore.getAll() });
   const { data: allBlocks = [] } = useQuery({ queryKey: ['checklist_blocks'], queryFn: () => checklistBlocksStore.getAll() });
   const { data: professionals = [] } = useQuery({ queryKey: ['professionals'], queryFn: () => professionalsStore.getAll() });
@@ -215,6 +218,42 @@ const Checklist = () => {
     if (b.type === 'other' && a.type !== 'other') return -1;
     return a.name.localeCompare(b.name, 'pt-BR');
   }), [riskCategories]);
+
+  // Helpers: medidas e exames associados a um risco — combina junction novo (risk_measures/risk_exams)
+  // com o vínculo legado direto (m.riskId/e.riskId) pra não perder dados antigos.
+  const getMeasuresForRisk = (riskId: string) => {
+    const direct = allMeasures.filter(m => m.riskId === riskId);
+    const viaJunction = allRiskMeasures
+      .filter(rm => rm.riskId === riskId)
+      .map(rm => allMeasures.find(m => m.id === rm.measureId))
+      .filter((m): m is typeof allMeasures[0] => !!m);
+    const map = new Map<string, typeof allMeasures[0]>();
+    [...direct, ...viaJunction].forEach(m => map.set(m.id, m));
+    return Array.from(map.values());
+  };
+  const getExamsForRisk = (riskId: string) => {
+    const direct = allExams.filter(e => e.riskId === riskId);
+    const viaJunction = allRiskExams
+      .filter(re => re.riskId === riskId)
+      .map(re => {
+        const exam = allExams.find(e => e.id === re.examId);
+        if (!exam) return null;
+        // mescla flags da associação por cima do exame
+        return {
+          ...exam,
+          admissional: re.admissional,
+          demissional: re.demissional,
+          periodico: re.periodico,
+          periodicidade: re.periodicidade,
+          retornoTrabalho: re.retornoTrabalho,
+          mudanca: re.mudanca,
+        } as typeof exam;
+      })
+      .filter((e): e is NonNullable<typeof e> => !!e);
+    const map = new Map<string, typeof allExams[0]>();
+    [...direct, ...viaJunction].forEach(e => map.set(e.id, e));
+    return Array.from(map.values());
+  };
 
   // Initialize openCategoryId once riskCategories load
   useEffect(() => {
@@ -267,8 +306,11 @@ const Checklist = () => {
   const handleQuickAddMeasure = async (riskId: string) => {
     const name = newMeasureName[riskId]?.trim();
     if (!name) return;
-    await safetyMeasuresStore.add({ name, riskId } as any);
+    // Cria a medida pura + associa ao risco via risk_measures
+    const created = await safetyMeasuresStore.add({ name } as any);
+    await riskMeasuresStore.add({ riskId, measureId: created.id } as any);
     qc.invalidateQueries({ queryKey: ['safety_measures'] });
+    qc.invalidateQueries({ queryKey: ['risk_measures'] });
     setNewMeasureName(prev => ({ ...prev, [riskId]: '' }));
     setShowNewMeasure(null);
     toast.success('Medida adicionada');
@@ -487,8 +529,8 @@ const Checklist = () => {
   const selectedFns = allFunctions.filter(f => selectedFunctionIds.includes(f.id));
   const activeRisk = activeRiskId ? risks.find(r => r.id === activeRiskId) : null;
   const activeRiskCategory = activeRisk ? riskCategories.find(c => c.id === activeRisk.categoryId) : null;
-  const activeRiskMeasures = activeRiskId ? allMeasures.filter(m => m.riskId === activeRiskId) : [];
-  const activeRiskExams = activeRiskId ? allExams.filter(e => e.riskId === activeRiskId) : [];
+  const activeRiskMeasures = activeRiskId ? getMeasuresForRisk(activeRiskId) : [];
+  const activeRiskExams = activeRiskId ? getExamsForRisk(activeRiskId) : [];
 
   const handleExportPdf = async () => {
     if (!reportRef.current) return;
@@ -538,7 +580,7 @@ const Checklist = () => {
       const conformities: { risco: string; medida: string }[] = [];
       selectedRiskIds.forEach(rId => {
         const r = risks.find(x => x.id === rId);
-        allMeasures.filter(m => m.riskId === rId).forEach(m => {
+        getMeasuresForRisk(rId).forEach(m => {
           const st = measureStatuses[m.id] || 0;
           if (st === 1) conformities.push({ risco: r?.name || '—', medida: m.name });
           if (st === 2) nonConformities.push({ risco: r?.name || '—', medida: m.name, nota: measureNotes[m.id] });
@@ -644,8 +686,8 @@ const Checklist = () => {
           const riskCat = riskCategories.find(c => c.id === risk.categoryId);
           const colors = riskCat ? getRiskColor(riskCat.type) : null;
           const riskKey = `risk_${riskId}`;
-          const riskMeasures = allMeasures.filter(m => m.riskId === riskId);
-          const riskExamsForRisk = allExams.filter(e => e.riskId === riskId);
+          const riskMeasures = getMeasuresForRisk(riskId);
+          const riskExamsForRisk = getExamsForRisk(riskId);
           const isExpanded = activeRiskId === riskId;
 
           return (
@@ -879,6 +921,8 @@ const Checklist = () => {
               measureStatuses={measureStatuses}
               measureNotes={measureNotes}
               allExams={allExams}
+              getMeasuresForRisk={getMeasuresForRisk}
+              getExamsForRisk={getExamsForRisk}
               selectedEpiIds={Object.entries(epiStatuses).filter(([, v]) => v === 1).map(([k]) => k)}
               epiStatuses={epiStatuses}
               allEpis={epis}
@@ -973,8 +1017,8 @@ const Checklist = () => {
                                 const isSelected = !!selectedRisks[risk.id];
                                 const isActive = activeRiskId === risk.id;
                                 const riskCat = riskCategories.find(c => c.id === risk.categoryId);
-                                const riskMeasures = allMeasures.filter(m => m.riskId === risk.id);
-                                const riskExamsForRisk = allExams.filter(e => e.riskId === risk.id);
+                                const riskMeasures = getMeasuresForRisk(risk.id);
+                                const riskExamsForRisk = getExamsForRisk(risk.id);
                                 const riskKey = `risk_${risk.id}`;
                                 return (
                                   <div key={risk.id}>

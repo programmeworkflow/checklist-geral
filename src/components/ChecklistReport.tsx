@@ -32,6 +32,9 @@ interface ReportProps {
   measureStatuses: Record<string, MeasureStatus>;
   measureNotes: Record<string, string>;
   allExams: OccupationalExam[];
+  /** Junction tables — opcionais p/ retro-compat. Se ausentes, usa filter por riskId direto. */
+  getMeasuresForRisk?: (riskId: string) => SafetyMeasure[];
+  getExamsForRisk?: (riskId: string) => OccupationalExam[];
   selectedEpiIds: string[];
   epiStatuses?: Record<string, MeasureStatus>;
   allEpis: EPI[];
@@ -64,11 +67,16 @@ export function ChecklistReport(props: ReportProps) {
     riskSeverity, riskProbability,
     allMeasures, measureStatuses, measureNotes,
     allExams,
+    getMeasuresForRisk: gM, getExamsForRisk: gE,
     selectedEpiIds, allEpis, selectedTrainingIds, allTrainings,
     blocks, allBlockFields,
     customActions, onAddCustomAction, onUpdateCustomAction, onRemoveCustomAction,
   } = props;
   const { epiStatuses = {}, trainingStatuses = {}, employeePhoto } = props;
+
+  // Helpers com fallback ao filter direto (retrocompat)
+  const measuresOf = (riskId: string) => gM ? gM(riskId) : allMeasures.filter(m => m.riskId === riskId);
+  const examsOf = (riskId: string) => gE ? gE(riskId) : allExams.filter(e => e.riskId === riskId);
 
   const conformities: { risk: Risk; measure: SafetyMeasure }[] = [];
   const nonConformities: { risk: Risk; measure: SafetyMeasure; note: string }[] = [];
@@ -77,7 +85,7 @@ export function ChecklistReport(props: ReportProps) {
   selectedRiskIds.forEach(riskId => {
     const risk = risks.find(r => r.id === riskId);
     if (!risk) return;
-    allMeasures.filter(m => m.riskId === riskId).forEach(m => {
+    measuresOf(riskId).forEach(m => {
       const status = measureStatuses[m.id] || 0;
       if (status === 1) conformities.push({ risk, measure: m });
       if (status === 2) nonConformities.push({ risk, measure: m, note: measureNotes[m.id] || '' });
@@ -89,7 +97,7 @@ export function ChecklistReport(props: ReportProps) {
     const examMap = new Map<string, OccupationalExam>();
     examMap.set('Clínico', { id: '__clinico__', riskId: '', name: 'Clínico', esocialCode: '0295', admissional: true, demissional: true, periodico: true, periodicidade: 12, retornoTrabalho: true, mudanca: true });
     selectedRiskIds.forEach(riskId => {
-      allExams.filter(e => e.riskId === riskId).forEach(exam => {
+      examsOf(riskId).forEach(exam => {
         const existing = examMap.get(exam.name);
         if (!existing) { examMap.set(exam.name, { ...exam }); }
         else { examMap.set(exam.name, { ...existing, admissional: existing.admissional || exam.admissional, demissional: existing.demissional || exam.demissional, periodico: existing.periodico || exam.periodico, periodicidade: exam.periodico ? (exam as any).periodicidade || existing.periodicidade : existing.periodicidade, retornoTrabalho: existing.retornoTrabalho || exam.retornoTrabalho, mudanca: existing.mudanca || exam.mudanca }); }
