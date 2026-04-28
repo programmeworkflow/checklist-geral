@@ -57,13 +57,14 @@ export default function Medidas() {
   };
 
   return (
-    <div className="p-4 md:p-6 max-w-3xl mx-auto space-y-4">
-      <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-        <Shield className="h-6 w-6" /> Medidas de Segurança
-      </h1>
-      <p className="text-sm text-muted-foreground">
-        Cadastre as medidas de segurança. O vínculo com riscos é gerenciado na tela de <strong>Riscos</strong>.
-      </p>
+    <div className="p-4 md:p-8 max-w-3xl mx-auto space-y-6">
+      <div className="pb-3 border-b border-border/60">
+        <p className="eyebrow mb-1 inline-flex items-center gap-1.5"><Shield className="h-3 w-3" /> Cadastros</p>
+        <h1 className="heading-display text-3xl md:text-4xl text-foreground">Medidas de Segurança</h1>
+        <p className="text-sm text-muted-foreground mt-2 max-w-md">
+          Cadastre as medidas de segurança. O vínculo com riscos é gerenciado em <strong className="text-foreground">Riscos</strong>.
+        </p>
+      </div>
 
       <SearchInput value={search} onChange={setSearch} placeholder="Buscar medidas..." />
 

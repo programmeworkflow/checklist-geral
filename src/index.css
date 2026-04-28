@@ -1,4 +1,13 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+/* ============================================================
+   VISTEC — Design System v2
+   Direção: editorial-médica refinada
+   - Typography: Bricolage Grotesque (display) + DM Sans (body)
+   - Palette: MedWork (teal #0C97C4 / blue #1A6FB5 / green #1B9B4E)
+   - Esquema: profissional, didático, simples — máximo de informação
+     com mínimo de ruído visual
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,221 +15,262 @@
 
 @layer base {
   :root {
-    /* ============================================
-       VISTEC Design System
-       Based on MedWork logo colors:
-       - Teal:  #0C97C4 (stethoscope circle)
-       - Blue:  #1A6FB5 (silhouette)
-       - Green: #1B9B4E (safety helmet, "WORK")
-       ============================================ */
-
-    --background: 200 20% 97%;
-    --foreground: 210 30% 12%;
+    /* ---- Surfaces ---- */
+    --background: 210 33% 98%;     /* paper, levemente azulado */
+    --foreground: 215 30% 11%;     /* tinta — ink puro */
 
     --card: 0 0% 100%;
-    --card-foreground: 210 30% 12%;
+    --card-foreground: 215 30% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 210 30% 12%;
+    --popover-foreground: 215 30% 11%;
 
-    /* Teal from logo stethoscope */
+    /* ---- Brand: MedWork Teal ---- */
     --primary: 195 88% 41%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 200 18% 93%;
-    --secondary-foreground: 210 25% 22%;
+    --secondary: 200 22% 95%;
+    --secondary-foreground: 215 25% 22%;
 
-    --muted: 200 14% 94%;
-    --muted-foreground: 210 12% 50%;
+    --muted: 210 22% 95%;
+    --muted-foreground: 215 14% 45%;
 
-    /* Green from logo helmet */
+    /* ---- Brand: MedWork Green ---- */
     --accent: 148 70% 36%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 0 72% 50%;
     --destructive-foreground: 0 0% 100%;
-
-    --border: 200 18% 89%;
-    --input: 200 18% 89%;
-    --ring: 195 88% 41%;
-
-    --radius: 0.75rem;
-
-    /* Sidebar: deep slate with blue undertone */
-    --sidebar-background: 215 35% 10%;
-    --sidebar-foreground: 210 15% 78%;
-    --sidebar-primary: 195 85% 52%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 28% 16%;
-    --sidebar-accent-foreground: 0 0% 92%;
-    --sidebar-border: 215 25% 16%;
-    --sidebar-ring: 195 85% 52%;
 
     --success: 148 70% 36%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
+
+    --warning: 36 92% 48%;
     --warning-foreground: 0 0% 100%;
+
+    /* ---- Borders / Inputs ---- */
+    --border: 210 18% 88%;
+    --input: 210 18% 88%;
+    --ring: 195 88% 41%;
+
+    --radius: 0.625rem;            /* 10px — mais editorial */
+
+    /* ---- Sidebar (slate profundo) ---- */
+    --sidebar-background: 215 35% 9%;
+    --sidebar-foreground: 210 14% 78%;
+    --sidebar-primary: 195 85% 56%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 28% 14%;
+    --sidebar-accent-foreground: 0 0% 92%;
+    --sidebar-border: 215 25% 14%;
+    --sidebar-ring: 195 85% 56%;
   }
 
   .dark {
-    --background: 215 32% 8%;
-    --foreground: 200 15% 94%;
+    --background: 215 32% 7%;
+    --foreground: 200 14% 95%;
 
-    --card: 215 28% 11%;
-    --card-foreground: 200 15% 94%;
+    --card: 215 28% 10%;
+    --card-foreground: 200 14% 95%;
 
-    --popover: 215 28% 11%;
-    --popover-foreground: 200 15% 94%;
+    --popover: 215 28% 10%;
+    --popover-foreground: 200 14% 95%;
 
-    --primary: 195 85% 48%;
+    --primary: 195 85% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 215 22% 17%;
+    --secondary: 215 22% 16%;
     --secondary-foreground: 200 15% 88%;
 
-    --muted: 215 20% 15%;
-    --muted-foreground: 210 12% 52%;
+    --muted: 215 20% 14%;
+    --muted-foreground: 210 12% 55%;
 
-    --accent: 148 65% 40%;
+    --accent: 148 65% 42%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 215 22% 18%;
-    --input: 215 22% 18%;
-    --ring: 195 85% 48%;
+    --border: 215 22% 17%;
+    --input: 215 22% 17%;
+    --ring: 195 85% 50%;
 
-    --sidebar-background: 215 38% 6%;
+    --sidebar-background: 215 38% 5%;
     --sidebar-foreground: 210 12% 75%;
-    --sidebar-primary: 195 85% 52%;
+    --sidebar-primary: 195 85% 56%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 30% 13%;
+    --sidebar-accent: 215 30% 12%;
     --sidebar-accent-foreground: 0 0% 90%;
-    --sidebar-border: 215 25% 13%;
-    --sidebar-ring: 195 85% 52%;
-
-    --success: 148 65% 40%;
-    --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
+    --sidebar-border: 215 25% 12%;
+    --sidebar-ring: 195 85% 56%;
   }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
+  * { @apply border-border; }
+
   html {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
+
   body {
-    @apply bg-background text-foreground antialiased;
-    font-feature-settings: 'cv11', 'ss01';
+    @apply bg-background text-foreground;
+    font-feature-settings: 'ss01', 'cv11';
+    /* Textura de papel sutil — adiciona profundidade sem ruído */
+    background-image:
+      radial-gradient(circle at 100% 0%, hsl(var(--primary) / 0.04) 0%, transparent 40%),
+      radial-gradient(circle at 0% 100%, hsl(var(--accent) / 0.03) 0%, transparent 35%);
+    background-attachment: fixed;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Bricolage Grotesque', 'DM Sans', sans-serif;
+    font-feature-settings: 'ss01';
+    letter-spacing: -0.018em;
+  }
+
+  /* Números sempre tabulares pra alinhamento didático */
+  .tabular,
+  [class*='stat-'],
+  th, td {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Foco refinado, mais visível */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: 4px;
   }
 }
 
-/* ===================================================
-   COMPONENT UTILITIES
-   =================================================== */
+/* ============================================================
+   Component Utilities
+   ============================================================ */
 @layer components {
 
-  /* ---- 3D Buttons ---- */
-  .btn-3d {
-    @apply relative transition-all duration-150;
+  /* ---- Cards: sombra suave, mais editorial ---- */
+  .card-interactive {
+    @apply bg-card border border-border/60 transition-all duration-200;
     box-shadow:
-      0 2px 0 0 hsl(195 88% 32%),
-      0 4px 10px -2px hsl(195 88% 41% / 0.3);
+      0 1px 2px -1px hsl(215 30% 11% / 0.04),
+      0 2px 4px -2px hsl(215 30% 11% / 0.04);
+  }
+  .card-interactive:hover {
+    @apply border-border;
+    transform: translateY(-1px);
+    box-shadow:
+      0 4px 12px -3px hsl(215 30% 11% / 0.08),
+      0 2px 6px -2px hsl(215 30% 11% / 0.06);
+  }
+  .card-interactive:active {
+    transform: translateY(0);
+  }
+
+  /* ---- Botões: design 3D mais sutil, profissional ---- */
+  .btn-3d {
+    @apply relative transition-all duration-150 font-medium;
+    box-shadow:
+      0 1px 0 0 hsl(195 88% 32%),
+      0 2px 6px -1px hsl(195 88% 41% / 0.25);
   }
   .btn-3d:hover {
     transform: translateY(-1px);
     box-shadow:
-      0 3px 0 0 hsl(195 88% 32%),
-      0 8px 16px -3px hsl(195 88% 41% / 0.35);
+      0 2px 0 0 hsl(195 88% 32%),
+      0 6px 12px -2px hsl(195 88% 41% / 0.30);
   }
   .btn-3d:active {
     transform: translateY(1px);
-    box-shadow:
-      0 0 0 0 hsl(195 88% 32%),
-      0 1px 4px 0 hsl(195 88% 41% / 0.2);
+    box-shadow: 0 0 0 0 hsl(195 88% 32%);
   }
 
   .btn-3d-accent {
-    @apply relative transition-all duration-150;
+    @apply relative transition-all duration-150 font-medium;
     box-shadow:
-      0 2px 0 0 hsl(148 70% 26%),
-      0 4px 10px -2px hsl(148 70% 36% / 0.3);
+      0 1px 0 0 hsl(148 70% 26%),
+      0 2px 6px -1px hsl(148 70% 36% / 0.25);
   }
   .btn-3d-accent:hover {
     transform: translateY(-1px);
     box-shadow:
-      0 3px 0 0 hsl(148 70% 26%),
-      0 8px 16px -3px hsl(148 70% 36% / 0.35);
+      0 2px 0 0 hsl(148 70% 26%),
+      0 6px 12px -2px hsl(148 70% 36% / 0.30);
   }
   .btn-3d-accent:active {
     transform: translateY(1px);
     box-shadow: 0 0 0 0 hsl(148 70% 26%);
   }
 
-  /* ---- Interactive Cards ---- */
-  .card-interactive {
-    @apply transition-all duration-200;
-    box-shadow:
-      0 1px 3px 0 rgb(0 0 0 / 0.05),
-      0 1px 2px -1px rgb(0 0 0 / 0.05);
-  }
-  .card-interactive:hover {
-    transform: translateY(-3px);
-    box-shadow:
-      0 12px 28px -6px rgb(0 0 0 / 0.08),
-      0 4px 12px -4px rgb(0 0 0 / 0.04);
-  }
-  .card-interactive:active {
-    transform: translateY(0);
-  }
-
-  /* ---- Glass card ---- */
+  /* ---- Vidro fosco ---- */
   .glass {
-    @apply backdrop-blur-xl;
-    background: rgba(255, 255, 255, 0.72);
+    @apply backdrop-blur-xl border border-white/40;
+    background: rgba(255, 255, 255, 0.7);
   }
   .dark .glass {
-    background: rgba(30, 41, 59, 0.72);
+    @apply border-white/5;
+    background: rgba(20, 28, 38, 0.7);
   }
 
-  /* ---- Gradient text ---- */
+  /* ---- Texto em gradiente da marca ---- */
   .text-gradient {
     @apply bg-clip-text text-transparent;
     background-image: linear-gradient(135deg, hsl(195 88% 41%), hsl(148 70% 36%));
   }
 
-  /* ---- Status pill badges ---- */
+  /* ---- Pills de status ---- */
   .badge-status {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide;
   }
 
-  /* ---- Sidebar scrollbar ---- */
+  /* ---- Scrollbar fina (sidebar) ---- */
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: hsl(215 28% 20%) transparent;
+    scrollbar-color: hsl(215 28% 18%) transparent;
   }
   .scrollbar-thin::-webkit-scrollbar { width: 3px; }
   .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
   .scrollbar-thin::-webkit-scrollbar-thumb { background: hsl(215 28% 22%); border-radius: 99px; }
 
-  /* ---- Stat number animation ---- */
+  /* ---- Números de KPI: editorial, dramático ---- */
   .stat-value {
-    @apply text-3xl font-extrabold tracking-tight leading-none;
+    font-family: 'Bricolage Grotesque', sans-serif;
+    @apply text-[2rem] md:text-[2.5rem] font-extrabold leading-none;
+    letter-spacing: -0.04em;
     font-variant-numeric: tabular-nums;
   }
 
-  /* ---- Active nav glow ---- */
+  /* ---- Active nav: barra à esquerda ---- */
   .nav-active-glow {
-    box-shadow: inset 3px 0 0 0 hsl(195 85% 52%);
+    box-shadow: inset 3px 0 0 0 hsl(195 85% 56%);
+  }
+
+  /* ---- Section heading editorial ---- */
+  .heading-display {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+  }
+
+  /* ---- Eyebrow / kicker (label sobre seção) ---- */
+  .eyebrow {
+    @apply text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground;
+  }
+
+  /* ---- Divider com pontos (estilo editorial) ---- */
+  .divider-dotted {
+    background-image: radial-gradient(circle, hsl(var(--border)) 1px, transparent 1px);
+    background-size: 8px 1px;
+    background-repeat: repeat-x;
+    background-position: center;
+    height: 1px;
   }
 }
 
-/* ===== Touch devices: disable hover transforms ===== */
+/* ===== Touch devices: desabilita hover transforms ===== */
 @media (hover: none) and (pointer: coarse) {
   .btn-3d:hover,
   .btn-3d-accent:hover,
@@ -242,5 +292,8 @@
   .card {
     border: 1px solid #e2e8f0 !important;
     box-shadow: none !important;
+  }
+  body {
+    background-image: none !important;
   }
 }

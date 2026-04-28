@@ -37,10 +37,11 @@ export default function Cargos() {
   }), [functions.items, sectorById]);
 
   return (
-    <div className="p-4 md:p-6 max-w-3xl mx-auto space-y-4">
-      <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-        <Users className="h-6 w-6" /> Cargos
-      </h1>
+    <div className="p-4 md:p-8 max-w-3xl mx-auto space-y-6">
+      <div className="pb-3 border-b border-border/60">
+        <p className="eyebrow mb-1 inline-flex items-center gap-1.5"><Users className="h-3 w-3" /> Cadastros</p>
+        <h1 className="heading-display text-3xl md:text-4xl text-foreground">Cargos</h1>
+      </div>
       <CrudList<JobFunction>
         title="Cargos"
         items={sortedFunctions}

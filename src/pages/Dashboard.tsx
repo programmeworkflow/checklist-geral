@@ -69,15 +69,18 @@ export default function Dashboard() {
   const conformRate = total > 0 ? Math.round((stats.conformities / total) * 100) : 0;
 
   return (
-    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div className="p-4 md:p-10 max-w-6xl mx-auto space-y-8">
+      {/* Header — editorial, didático */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 pb-2 border-b border-border/60">
         <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-foreground tracking-tight">Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">Visao geral das avaliacoes de riscos</p>
+          <p className="eyebrow mb-1">Painel geral</p>
+          <h1 className="heading-display text-3xl md:text-5xl text-foreground">Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-2 max-w-md">
+            Visão consolidada das avaliações de riscos ocupacionais e atividades dos técnicos em campo.
+          </p>
         </div>
         <Link to="/checklist">
-          <button className="btn-3d-accent inline-flex items-center gap-2 bg-accent hover:bg-accent/90 text-white rounded-xl px-5 h-11 text-sm font-semibold">
+          <button className="btn-3d-accent inline-flex items-center gap-2 bg-accent hover:bg-accent/90 text-white rounded-lg px-5 h-11 text-sm font-semibold">
             <Plus className="h-4 w-4" /> Novo Checklist
           </button>
         </Link>
@@ -132,30 +135,33 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Conformity Status */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-        <Card className="card-interactive p-5 border-l-[3px] border-l-[#1B9B4E]">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-[#1B9B4E]/20 to-[#1B9B4E]/5 flex items-center justify-center">
-              <CheckCircle2 className="h-6 w-6 text-[#1B9B4E]" />
+      {/* Conformity Status — editorial */}
+      <div>
+        <p className="eyebrow mb-3">Status</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+          <Card className="card-interactive p-5 border-l-[3px] border-l-[#1B9B4E]">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-lg bg-[#1B9B4E]/10 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="h-6 w-6 text-[#1B9B4E]" />
+              </div>
+              <div>
+                <p className="stat-value text-foreground">{stats.conformities}</p>
+                <p className="text-xs text-muted-foreground mt-1 font-medium">Conformidades</p>
+              </div>
             </div>
-            <div>
-              <p className="stat-value text-foreground">{stats.conformities}</p>
-              <p className="text-xs text-muted-foreground mt-0.5 font-medium">Conformidades</p>
+          </Card>
+          <Card className="card-interactive p-5 border-l-[3px] border-l-destructive">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+                <XCircle className="h-6 w-6 text-destructive" />
+              </div>
+              <div>
+                <p className="stat-value text-foreground">{stats.nonConformities}</p>
+                <p className="text-xs text-muted-foreground mt-1 font-medium">Não Conformidades</p>
+              </div>
             </div>
-          </div>
-        </Card>
-        <Card className="card-interactive p-5 border-l-[3px] border-l-destructive">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-destructive/20 to-destructive/5 flex items-center justify-center">
-              <XCircle className="h-6 w-6 text-destructive" />
-            </div>
-            <div>
-              <p className="stat-value text-foreground">{stats.nonConformities}</p>
-              <p className="text-xs text-muted-foreground mt-0.5 font-medium">Nao Conformidades</p>
-            </div>
-          </div>
-        </Card>
+          </Card>
+        </div>
       </div>
 
       {/* Charts */}
@@ -251,22 +257,20 @@ function EmptyChart() {
   );
 }
 
-function KpiCard({ icon: Icon, label, value, suffix, color, iconBg, iconColor, link }: {
+function KpiCard({ icon: Icon, label, value, suffix, iconBg, iconColor, link }: {
   icon: React.ElementType; label: string; value: number; suffix?: string;
-  color: string; iconBg: string; iconColor: string; link?: string;
+  color?: string; iconBg: string; iconColor: string; link?: string;
 }) {
   const content = (
-    <Card className={`card-interactive relative overflow-hidden p-4 md:p-5 bg-gradient-to-br ${color} group`}>
-      <div className="flex items-start justify-between">
-        <div className={`h-10 w-10 rounded-xl ${iconBg} flex items-center justify-center`}>
-          <Icon className={`h-5 w-5 ${iconColor}`} />
+    <Card className="card-interactive relative p-5 md:p-6 group h-full">
+      <div className="flex items-center gap-3 mb-4">
+        <div className={`h-9 w-9 rounded-lg ${iconBg} flex items-center justify-center shrink-0`}>
+          <Icon className={`h-4.5 w-4.5 ${iconColor}`} />
         </div>
-        {link && <ArrowUpRight className="h-4 w-4 text-muted-foreground/30 group-hover:text-primary transition-colors" />}
+        <p className="eyebrow">{label}</p>
+        {link && <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-foreground transition-colors ml-auto" />}
       </div>
-      <div className="mt-3">
-        <p className="stat-value text-foreground">{value}{suffix}</p>
-        <p className="text-xs text-muted-foreground mt-1 font-medium">{label}</p>
-      </div>
+      <p className="stat-value text-foreground">{value}<span className="text-muted-foreground/50">{suffix}</span></p>
     </Card>
   );
   return link ? <Link to={link}>{content}</Link> : content;
