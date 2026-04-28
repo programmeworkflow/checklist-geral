@@ -93,14 +93,36 @@ export function ChecklistReport(props: ReportProps) {
     });
   });
 
+  // Consolida exames por nome:
+  //  - OR-merge dos tipos (admiss/dem/peri/ret/mud)
+  //  - MIN da periodicidade quando periódico (intervalo mais conservador)
+  const mergeExam = (a: OccupationalExam, b: OccupationalExam): OccupationalExam => {
+    const periodico = a.periodico || b.periodico;
+    let periodicidade: 6 | 12 | 24 | undefined;
+    if (periodico) {
+      const aP = a.periodico ? a.periodicidade : undefined;
+      const bP = b.periodico ? b.periodicidade : undefined;
+      if (aP && bP) periodicidade = (Math.min(aP, bP) as 6 | 12 | 24);
+      else periodicidade = aP || bP;
+    }
+    return {
+      ...a,
+      admissional: a.admissional || b.admissional,
+      demissional: a.demissional || b.demissional,
+      periodico,
+      periodicidade,
+      retornoTrabalho: a.retornoTrabalho || b.retornoTrabalho,
+      mudanca: a.mudanca || b.mudanca,
+    };
+  };
+
   const examsByFunction = selectedFns.map(fn => {
     const examMap = new Map<string, OccupationalExam>();
     examMap.set('Clínico', { id: '__clinico__', riskId: '', name: 'Clínico', esocialCode: '0295', admissional: true, demissional: true, periodico: true, periodicidade: 12, retornoTrabalho: true, mudanca: true });
     selectedRiskIds.forEach(riskId => {
       examsOf(riskId).forEach(exam => {
         const existing = examMap.get(exam.name);
-        if (!existing) { examMap.set(exam.name, { ...exam }); }
-        else { examMap.set(exam.name, { ...existing, admissional: existing.admissional || exam.admissional, demissional: existing.demissional || exam.demissional, periodico: existing.periodico || exam.periodico, periodicidade: exam.periodico ? (exam as any).periodicidade || existing.periodicidade : existing.periodicidade, retornoTrabalho: existing.retornoTrabalho || exam.retornoTrabalho, mudanca: existing.mudanca || exam.mudanca }); }
+        examMap.set(exam.name, existing ? mergeExam(existing, exam) : { ...exam });
       });
     });
     return { fn, exams: Array.from(examMap.values()) };
@@ -467,19 +489,17 @@ export function ChecklistReport(props: ReportProps) {
   ) : null;
 
   // =============================================
-  // PROFISSIONAL RESPONSÁVEL
+  // PROFISSIONAL RESPONSÁVEL — apenas o selecionado no checklist
   // =============================================
-  const renderProfessional = () => professionals.length === 0 ? null : (
+  const tecnicoId = (formData as any).tecnicoId || '';
+  const responsavel = professionals.find(p => p.id === tecnicoId);
+  const renderProfessional = () => !responsavel ? null : (
     <div data-pdf-section="professional" className={S.card}>
       <h3 className={S.sectionTitle}>Profissional Responsável</h3>
-      <div className="space-y-2">
-        {professionals.map(p => (
-          <div key={p.id} className="border border-gray-200 rounded-lg p-3">
-            <p className="text-[13px] font-bold text-gray-900">{p.name}</p>
-            <p className="text-[11px] text-gray-500">{p.formation}</p>
-            <p className="text-[11px] text-gray-500">Registro: {p.registration}</p>
-          </div>
-        ))}
+      <div className="border border-gray-200 rounded-lg p-3">
+        <p className="text-[13px] font-bold text-gray-900">{responsavel.name}</p>
+        {responsavel.formation && <p className="text-[11px] text-gray-500">{responsavel.formation}</p>}
+        {responsavel.registration && <p className="text-[11px] text-gray-500">Registro: {responsavel.registration}</p>}
       </div>
     </div>
   );

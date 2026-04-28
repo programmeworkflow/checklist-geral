@@ -48,36 +48,48 @@ export async function exportReportToPdf(element: HTMLElement, filename = 'relato
     }
   }
 
+  // Threshold: até 1.5x a altura da página, escalamos pra caber em UMA página
+  // (mantém o bloco inteiro). Acima disso, fatiamos como fallback.
+  const SCALE_LIMIT = 1.5;
+
   for (const { canvas } of captures) {
     const imgW = canvas.width;
     const imgH = canvas.height;
     const ratio = CONTENT_W / imgW;
-    const totalH = imgH * ratio; // total height in mm
+    const totalH = imgH * ratio; // mm
 
     if (totalH <= availableH()) {
-      // Fits in current page
+      // Cabe na página atual
       const imgData = canvas.toDataURL('image/jpeg', 0.92);
       pdf.addImage(imgData, 'JPEG', MARGIN, currentY, CONTENT_W, totalH);
-      currentY += totalH + 3; // 3mm gap between sections
+      currentY += totalH + 3;
     } else if (totalH <= CONTENT_H) {
-      // Fits in a full page but not current - start new page
+      // Cabe numa página inteira, mas não na atual — vai pra próxima
       addPageIfNeeded(totalH);
       const imgData = canvas.toDataURL('image/jpeg', 0.92);
       pdf.addImage(imgData, 'JPEG', MARGIN, currentY, CONTENT_W, totalH);
       currentY += totalH + 3;
+    } else if (totalH <= CONTENT_H * SCALE_LIMIT) {
+      // Pouco maior que uma página: escala pra caber inteiro numa página
+      addPageIfNeeded(CONTENT_H);
+      const scale = CONTENT_H / totalH;
+      const fitW = CONTENT_W * scale;
+      const fitH = CONTENT_H;
+      const xOffset = MARGIN + (CONTENT_W - fitW) / 2;
+      const imgData = canvas.toDataURL('image/jpeg', 0.92);
+      pdf.addImage(imgData, 'JPEG', xOffset, currentY, fitW, fitH);
+      currentY += fitH + 3;
     } else {
-      // Section is taller than one page - slice it
+      // Bloco gigante (>1.5 páginas): força fatiar
       let srcY = 0;
       while (srcY < imgH) {
         const sliceH = Math.min((availableH()) / ratio, imgH - srcY);
         if (sliceH < 20) {
-          // Too little space, go to next page
           pdf.addPage();
           pageNum++;
           currentY = MARGIN;
           continue;
         }
-
         const sliceCanvas = document.createElement('canvas');
         sliceCanvas.width = imgW;
         sliceCanvas.height = sliceH;

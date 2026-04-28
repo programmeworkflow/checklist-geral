@@ -53,6 +53,7 @@ export default function EmpresaDetail() {
 
   // UI state
   const [showImport, setShowImport] = useState(false);
+  const [filterMode, setFilterMode] = useState<'all' | 'pending' | 'completed'>('all');
   const [expandedSector, setExpandedSector] = useState<string | null>(companySectors[0]?.id || null);
   const [addingSector, setAddingSector] = useState(false);
   const [newSectorName, setNewSectorName] = useState('');
@@ -136,37 +137,63 @@ export default function EmpresaDetail() {
         </div>
       </div>
 
-      {/* Dashboard indicators */}
+      {/* Dashboard indicators (clicáveis) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className="p-3 flex items-center gap-3">
-          <Clock className="h-5 w-5 text-amber-500 shrink-0" />
-          <div>
-            <p className="text-lg font-bold text-foreground">{pendingCount}</p>
-            <p className="text-xs text-muted-foreground">Pendentes</p>
-          </div>
-        </Card>
-        <Card className="p-3 flex items-center gap-3">
-          <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
-          <div>
-            <p className="text-lg font-bold text-foreground">{completedCount}</p>
-            <p className="text-xs text-muted-foreground">Concluídos</p>
-          </div>
-        </Card>
-        <Card className="p-3 flex items-center gap-3">
-          <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
-          <div>
-            <p className="text-lg font-bold text-foreground">{conformities}</p>
-            <p className="text-xs text-muted-foreground">Conformidades</p>
-          </div>
-        </Card>
-        <Card className="p-3 flex items-center gap-3">
-          <XCircle className="h-5 w-5 text-red-600 shrink-0" />
-          <div>
-            <p className="text-lg font-bold text-foreground">{nonConformities}</p>
-            <p className="text-xs text-muted-foreground">Não Conform.</p>
-          </div>
-        </Card>
+        <button
+          onClick={() => setFilterMode(filterMode === 'pending' ? 'all' : 'pending')}
+          className={cn('text-left transition-all', filterMode === 'pending' && 'ring-2 ring-amber-500 rounded-lg')}
+        >
+          <Card className="p-3 flex items-center gap-3 hover:bg-amber-50/50 cursor-pointer">
+            <Clock className="h-5 w-5 text-amber-500 shrink-0" />
+            <div>
+              <p className="text-lg font-bold text-foreground">{pendingCount}</p>
+              <p className="text-xs text-muted-foreground">Pendentes</p>
+            </div>
+          </Card>
+        </button>
+        <button
+          onClick={() => setFilterMode(filterMode === 'completed' ? 'all' : 'completed')}
+          className={cn('text-left transition-all', filterMode === 'completed' && 'ring-2 ring-green-500 rounded-lg')}
+        >
+          <Card className="p-3 flex items-center gap-3 hover:bg-green-50/50 cursor-pointer">
+            <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
+            <div>
+              <p className="text-lg font-bold text-foreground">{completedCount}</p>
+              <p className="text-xs text-muted-foreground">Concluídos</p>
+            </div>
+          </Card>
+        </button>
+        <button
+          onClick={() => navigate(`/relatorios?empresa=${id}`)}
+          className="text-left transition-all"
+        >
+          <Card className="p-3 flex items-center gap-3 hover:bg-green-50/50 cursor-pointer">
+            <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
+            <div>
+              <p className="text-lg font-bold text-foreground">{conformities}</p>
+              <p className="text-xs text-muted-foreground">Conformidades</p>
+            </div>
+          </Card>
+        </button>
+        <button
+          onClick={() => navigate(`/relatorios?empresa=${id}`)}
+          className="text-left transition-all"
+        >
+          <Card className="p-3 flex items-center gap-3 hover:bg-red-50/50 cursor-pointer">
+            <XCircle className="h-5 w-5 text-red-600 shrink-0" />
+            <div>
+              <p className="text-lg font-bold text-foreground">{nonConformities}</p>
+              <p className="text-xs text-muted-foreground">Não Conform.</p>
+            </div>
+          </Card>
+        </button>
       </div>
+      {filterMode !== 'all' && (
+        <p className="text-xs text-muted-foreground -mt-2 px-1">
+          Mostrando apenas cargos {filterMode === 'pending' ? 'pendentes' : 'concluídos'} —
+          <button onClick={() => setFilterMode('all')} className="ml-1 text-primary hover:underline">limpar filtro</button>
+        </p>
+      )}
 
       {/* Progress Card */}
       {totalFunctions > 0 && (
@@ -231,7 +258,14 @@ export default function EmpresaDetail() {
       ) : (
         <div className="space-y-2">
           {companySectors.map(sector => {
-            const sectorFunctions = functions.items.filter(f => f.sectorId === sector.id);
+            const allSectorFunctions = functions.items.filter(f => f.sectorId === sector.id);
+            const sectorFunctions = filterMode === 'pending'
+              ? allSectorFunctions.filter(f => !completedFunctionIds.has(f.id))
+              : filterMode === 'completed'
+              ? allSectorFunctions.filter(f => completedFunctionIds.has(f.id))
+              : allSectorFunctions;
+            // Esconde setor se filtro ativo e nada bate
+            if (filterMode !== 'all' && sectorFunctions.length === 0) return null;
             const isExpanded = expandedSector === sector.id;
 
             return (
