@@ -13,10 +13,12 @@ const FIELD_MAPS: Record<string, Record<string, string>> = {
   trainings:          {},
   checklist_blocks:   { isSystem: 'is_system' },
   block_fields:       { blockId: 'block_id' },
-  checklists:         { companyId: 'company_id', sectorId: 'sector_id', functionIds: 'function_ids', createdAt: 'created_at', formData: 'form_data', selectedRisks: 'selected_risks', selectedEpis: 'selected_epis', selectedTrainings: 'selected_trainings' },
+  checklists:         { companyId: 'company_id', sectorId: 'sector_id', functionIds: 'function_ids', createdAt: 'created_at', updatedAt: 'updated_at', formData: 'form_data', selectedRisks: 'selected_risks', selectedEpis: 'selected_epis', selectedTrainings: 'selected_trainings', isDraft: 'is_draft' },
   nav_items:          {},
   report_blocks:      {},
   professionals:      {},
+  risk_measures:      { riskId: 'risk_id', measureId: 'measure_id', createdAt: 'created_at' },
+  risk_exams:         { riskId: 'risk_id', examId: 'exam_id', esocialCode: 'esocial_code', retornoTrabalho: 'retorno_trabalho', createdAt: 'created_at' },
 };
 
 // Build reverse maps once

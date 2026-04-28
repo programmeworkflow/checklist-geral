@@ -3,19 +3,20 @@ import { CrudList } from '@/components/CrudList';
 import { useStore } from '@/hooks/useStore';
 import {
   riskCategoriesStore, risksStore, examsStore, safetyMeasuresStore,
+  riskExamsStore, riskMeasuresStore,
 } from '@/lib/storage';
 import type { Risk, RiskCategory } from '@/lib/storage';
 import { RiskBadge } from '@/lib/riskColors';
-import { Badge } from '@/components/ui/badge';
-import { Stethoscope, Shield, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { SearchInput } from '@/components/SearchInput';
 import { GenericExcelImport } from '@/components/GenericExcelImport';
+import { RiskAssociations } from '@/components/RiskAssociations';
 
 export default function Riscos() {
   const riskCategories = useStore(riskCategoriesStore);
   const risks = useStore(risksStore);
-  const exams = useStore(examsStore);
-  const safetyMeasures = useStore(safetyMeasuresStore);
+  const riskExams = useStore(riskExamsStore);
+  const riskMeasures = useStore(riskMeasuresStore);
   const [search, setSearch] = useState('');
 
   // Categorias A-Z, mas "other" (Outros) sempre no fim
@@ -105,29 +106,22 @@ export default function Riscos() {
         }}
         onUpdate={risks.update}
         onDelete={(id) => {
+          // M-N tables têm ON DELETE CASCADE, basta remover o risco
           risks.remove(id);
-          exams.items.filter(e => e.riskId === id).forEach(e => exams.remove(e.id));
-          safetyMeasures.items.filter(m => m.riskId === id).forEach(m => safetyMeasures.remove(m.id));
         }}
         renderExtra={(item) => {
           const cat = riskCategories.items.find(c => c.id === item.categoryId);
-          const riskExams = exams.items.filter(e => e.riskId === item.id);
-          const riskMeasures = safetyMeasures.items.filter(m => m.riskId === item.id);
+          const myExams = riskExams.items.filter(re => re.riskId === item.id);
+          const myMeasures = riskMeasures.items.filter(rm => rm.riskId === item.id);
           return (
-            <div className="mt-1 space-y-1">
+            <div className="mt-1">
               {cat && <RiskBadge type={cat.type} label={cat.name} />}
-              {riskExams.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1">
-                  <Stethoscope className="h-3.5 w-3.5 text-muted-foreground" />
-                  {riskExams.map(ex => <Badge key={ex.id} variant="outline" className="text-xs">{ex.name}</Badge>)}
-                </div>
-              )}
-              {riskMeasures.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1">
-                  <Shield className="h-3.5 w-3.5 text-muted-foreground" />
-                  {riskMeasures.map(m => <Badge key={m.id} variant="outline" className="text-xs">{m.name}</Badge>)}
-                </div>
-              )}
+              <div className="flex gap-2 mt-2 text-xs text-muted-foreground">
+                <span>{myExams.length} exame{myExams.length !== 1 ? 's' : ''}</span>
+                <span>·</span>
+                <span>{myMeasures.length} medida{myMeasures.length !== 1 ? 's' : ''}</span>
+              </div>
+              <RiskAssociations riskId={item.id} />
             </div>
           );
         }}

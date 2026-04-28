@@ -68,6 +68,11 @@ const Checklist = () => {
   const [exporting, setExporting] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
+  // Autosave (rascunho)
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [autoSaving, setAutoSaving] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+
   // Load existing checklist data (view or duplicate)
   const isDuplicate = window.location.search.includes('duplicate=true');
   useEffect(() => {
@@ -274,6 +279,72 @@ const Checklist = () => {
     [selectedRisks]
   );
 
+  // Helper que monta o payload completo (rascunho ou final)
+  const buildPayload = (isDraft: boolean) => ({
+    companyId,
+    sectorId,
+    functionIds: selectedFunctionIds,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    isDraft,
+    formData: {
+      ...formData,
+      observations,
+      epiStatuses,
+      trainingStatuses,
+      employeePhoto: employeePhotos[0] || '',
+      employeePhotos,
+      measureStatuses,
+      measureNotes,
+      riskSeverity,
+      riskProbability,
+      riskSources,
+      customActions: customActions.filter(a => a.trim()),
+    },
+    selectedRisks: Object.fromEntries(
+      selectedRiskIds.map(k => [k, {
+        checked: true,
+        exposure: riskExposures[k] || '',
+        exposureOther: riskExposureOther[k] || '',
+      }])
+    ),
+    selectedEpis: Object.fromEntries(Object.entries(epiStatuses).filter(([, v]) => v === 1).map(([k]) => [k, true])),
+    selectedTrainings: Object.fromEntries(Object.entries(trainingStatuses).filter(([, v]) => v === 1).map(([k]) => [k, true])),
+  });
+
+  // Autosave debounced (3s sem mudança → grava como is_draft=true)
+  useEffect(() => {
+    if (step !== 'fill' || !companyId || !sectorId || isDuplicate) return;
+    if (showReport) return; // não salva durante exibição do relatório
+    const hasContent = selectedRiskIds.length > 0 || Object.keys(formData).length > 1;
+    if (!hasContent && !draftId) return;
+
+    const timer = setTimeout(async () => {
+      setAutoSaving(true);
+      try {
+        const payload = buildPayload(true);
+        if (draftId) {
+          await checklistsStore.update(draftId, payload as any);
+        } else {
+          const created = await checklistsStore.add(payload as any);
+          setDraftId(created.id);
+        }
+        setLastSavedAt(new Date());
+      } catch (err) {
+        console.error('autosave fail:', err);
+      } finally {
+        setAutoSaving(false);
+      }
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [
+    step, companyId, sectorId, selectedFunctionIds, formData, observations,
+    epiStatuses, trainingStatuses, employeePhotos, measureStatuses, measureNotes,
+    riskSeverity, riskProbability, riskSources, customActions,
+    selectedRisks, riskExposures, riskExposureOther, showReport,
+  ]);
+
   const handleSave = async () => {
     // Validate fonte geradora (required)
     const missingSource = selectedRiskIds.find(id => !riskSources[id]?.trim());
@@ -312,35 +383,14 @@ const Checklist = () => {
     }
 
     try {
-      await checklistsStore.add({
-        companyId,
-        sectorId,
-        functionIds: selectedFunctionIds,
-        createdAt: new Date().toISOString(),
-        formData: {
-          ...formData,
-          observations,
-          epiStatuses,
-          trainingStatuses,
-          employeePhoto: employeePhotos[0] || '',
-          employeePhotos,
-          measureStatuses,
-          measureNotes,
-          riskSeverity,
-          riskProbability,
-          riskSources,
-          customActions: customActions.filter(a => a.trim()),
-        },
-        selectedRisks: Object.fromEntries(
-          selectedRiskIds.map(k => [k, {
-            checked: true,
-            exposure: riskExposures[k] || '',
-            exposureOther: riskExposureOther[k] || '',
-          }])
-        ),
-        selectedEpis: Object.fromEntries(Object.entries(epiStatuses).filter(([, v]) => v === 1).map(([k]) => [k, true])),
-        selectedTrainings: Object.fromEntries(Object.entries(trainingStatuses).filter(([, v]) => v === 1).map(([k]) => [k, true])),
-      } as any);
+      const payload = buildPayload(false);
+      if (draftId) {
+        // Promove o rascunho a checklist final
+        await checklistsStore.update(draftId, payload as any);
+      } else {
+        const created = await checklistsStore.add(payload as any);
+        setDraftId(created.id);
+      }
       qc.invalidateQueries({ queryKey: ['checklists'] });
       toast.success('Checklist salvo com sucesso!');
       setShowReport(true);
@@ -781,13 +831,25 @@ const Checklist = () => {
         <Button variant="ghost" size="sm" onClick={() => setStep('select')}>
           <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
         </Button>
-        <Button
-          variant={showReport ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setShowReport(!showReport)}
-        >
-          <FileBarChart className="h-4 w-4 mr-1" /> {showReport ? 'Editar' : 'Relatório'}
-        </Button>
+        <div className="flex items-center gap-3">
+          {autoSaving && (
+            <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" /> Salvando…
+            </span>
+          )}
+          {!autoSaving && lastSavedAt && draftId && (
+            <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-green-500" /> Rascunho salvo
+            </span>
+          )}
+          <Button
+            variant={showReport ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setShowReport(!showReport)}
+          >
+            <FileBarChart className="h-4 w-4 mr-1" /> {showReport ? 'Editar' : 'Relatório'}
+          </Button>
+        </div>
       </div>
 
       <div className="mb-4 p-3 rounded-lg bg-primary/10 border border-primary/20 print:hidden">

@@ -22,8 +22,16 @@ export interface BlockField { id: string; blockId: string; label: string; type: 
 export interface ChecklistBlock { id: string; name: string; order: number; isSystem: boolean; visible: boolean; description?: string; }
 export interface NavItem { id: string; key: string; label: string; visible: boolean; order: number; }
 export interface ReportBlock { id: string; key: string; label: string; visible: boolean; order: number; }
+export interface RiskMeasure { id: string; riskId: string; measureId: string; }
+export interface RiskExam {
+  id: string; riskId: string; examId: string;
+  admissional: boolean; demissional: boolean; periodico: boolean;
+  periodicidade?: 6 | 12 | 24;
+  retornoTrabalho: boolean; mudanca: boolean;
+}
 export interface ChecklistData {
   id: string; companyId: string; sectorId: string; functionIds: string[]; createdAt: string;
+  updatedAt?: string; isDraft?: boolean;
   formData: Record<string, any>;
   selectedRisks: Record<string, { checked: boolean; desc?: string; notes?: string; frequency?: string }>;
   selectedEpis: Record<string, boolean>;
@@ -115,6 +123,8 @@ export const checklistsStore = createCrud<ChecklistData>('checklists');
 export const navItemsStore = createCrud<NavItem>('nav_items');
 export const reportBlocksStore = createCrud<ReportBlock>('report_blocks');
 export const professionalsStore = createCrud<Professional>('professionals');
+export const riskMeasuresStore = createCrud<RiskMeasure>('risk_measures');
+export const riskExamsStore = createCrud<RiskExam>('risk_exams');
 
 // ============================================
 // SEED DEFAULTS (async)
