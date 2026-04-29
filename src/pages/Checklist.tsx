@@ -25,12 +25,14 @@ import { exportReportToExcel } from '@/lib/exportExcel';
 import { safeUploadFile, uploadBase64 } from '@/lib/uploadFile';
 import { FileSpreadsheet, FileDown } from 'lucide-react';
 import { SignaturePad } from '@/components/SignaturePad';
+import { useAuth } from '@/hooks/useAuth';
 
 type Step = 'select' | 'fill';
 type MeasureStatus = 0 | 1 | 2 | 3;
 
 const Checklist = () => {
   const navigate = useNavigate();
+  const { user: authUser } = useAuth();
   const { id: duplicateId } = useParams<{ id: string }>();
   const [step, setStep] = useState<Step>('select');
 
@@ -265,7 +267,14 @@ const Checklist = () => {
   const companySectors = useMemo(() => allSectors.filter(s => s.companyId === companyId), [companyId, allSectors]);
   const sectorFunctions = useMemo(() => allFunctions.filter(f => f.sectorId === sectorId), [sectorId, allFunctions]);
 
-  const tecnicoId = formData.tecnicoId || '';
+  // Auto-preenche técnico com profissional logado (se ainda não houver)
+  useEffect(() => {
+    if (authUser?.id && !formData.tecnicoId) {
+      setFormData(prev => ({ ...prev, tecnicoId: authUser.id }));
+    }
+  }, [authUser?.id]);
+
+  const tecnicoId = formData.tecnicoId || authUser?.id || '';
   const canProceed = companyId && sectorId && selectedFunctionIds.length > 0 && tecnicoId;
   const handleProceed = () => { if (canProceed) setStep('fill'); };
   const toggleFunction = (id: string) => {
@@ -448,21 +457,27 @@ const Checklist = () => {
         <h1 className="text-2xl font-bold text-foreground mb-6">Novo Checklist</h1>
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-muted-foreground">Profissional Responsável <span className="text-destructive">*</span></label>
-            <select
-              className="w-full mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={tecnicoId}
-              onChange={e => setFormData({ ...formData, tecnicoId: e.target.value })}
-            >
-              <option value="">-- Selecione --</option>
-              {professionals.map(p => (
-                <option key={p.id} value={p.id}>{p.name}{p.formation ? ` — ${p.formation}` : ''}</option>
-              ))}
-            </select>
-            {professionals.length === 0 && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Nenhum profissional cadastrado. Cadastre em <a href="/profissionais" className="text-primary underline">Profissionais</a>.
-              </p>
+            <label className="text-sm font-medium text-muted-foreground">Profissional Responsável</label>
+            {authUser ? (
+              <div className="mt-1 rounded-md border border-input bg-muted/40 px-3 py-2 text-sm">
+                <p className="font-semibold text-foreground">{authUser.name}</p>
+                {(authUser.formation || authUser.registration) && (
+                  <p className="text-xs text-muted-foreground">
+                    {authUser.formation}{authUser.formation && authUser.registration ? ' · ' : ''}{authUser.registration}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <select
+                className="w-full mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={tecnicoId}
+                onChange={e => setFormData({ ...formData, tecnicoId: e.target.value })}
+              >
+                <option value="">-- Selecione --</option>
+                {professionals.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}{p.formation ? ` — ${p.formation}` : ''}</option>
+                ))}
+              </select>
             )}
           </div>
           <div>
@@ -1519,6 +1534,18 @@ const Checklist = () => {
                 <ImagePlus className="h-4 w-4 mr-2" /> Galeria
               </Button>
             </div>
+          </Card>
+
+          {/* Assinatura do Entrevistado — opcional */}
+          <Card className="p-4">
+            <h2 className="bg-muted text-foreground px-3 py-2 rounded-md mb-3 font-semibold text-base">
+              Assinatura do Entrevistado
+            </h2>
+            <p className="text-xs text-muted-foreground mb-2">Opcional · Desenhe ou peça ao funcionário entrevistado para assinar.</p>
+            <SignaturePad
+              value={formData.signatureEntrevistado || ''}
+              onChange={(dataUrl) => setFormData({ ...formData, signatureEntrevistado: dataUrl || '' })}
+            />
           </Card>
 
           <Button onClick={handleSave} className="w-full bg-green-600 hover:bg-green-700 text-white" size="lg">

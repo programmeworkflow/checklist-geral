@@ -50,13 +50,13 @@ interface ReportProps {
   employeePhoto?: string;
 }
 
-// Style constants
+// Style constants — fontes compactas para PDF (mais conteúdo por página)
 const S = {
   page: 'bg-white text-gray-900',
-  sectionTitle: 'text-[15px] font-bold text-gray-900 mb-3 pb-2 border-b-2 flex items-center gap-2',
-  label: 'text-[11px] font-semibold text-gray-500 uppercase tracking-wider',
-  value: 'text-[13px] text-gray-900',
-  card: 'border border-gray-200 rounded-lg p-4 bg-white',
+  sectionTitle: 'text-[12px] font-bold text-gray-900 mb-2 pb-1.5 border-b-2 flex items-center gap-2',
+  label: 'text-[9px] font-semibold text-gray-500 uppercase tracking-wider',
+  value: 'text-[11px] text-gray-900',
+  card: 'border border-gray-200 rounded-md p-3 bg-white',
   headerBar: 'bg-gradient-to-r from-[#0C97C4] to-[#1B9B4E]',
 };
 
@@ -489,20 +489,40 @@ export function ChecklistReport(props: ReportProps) {
   ) : null;
 
   // =============================================
-  // PROFISSIONAL RESPONSÁVEL — apenas o selecionado no checklist
+  // PROFISSIONAL RESPONSÁVEL + ASSINATURA DO ENTREVISTADO
   // =============================================
   const tecnicoId = (formData as any).tecnicoId || '';
   const responsavel = professionals.find(p => p.id === tecnicoId);
-  const renderProfessional = () => !responsavel ? null : (
-    <div data-pdf-section="professional" className={S.card}>
-      <h3 className={S.sectionTitle}>Profissional Responsável</h3>
-      <div className="border border-gray-200 rounded-lg p-3">
-        <p className="text-[13px] font-bold text-gray-900">{responsavel.name}</p>
-        {responsavel.formation && <p className="text-[11px] text-gray-500">{responsavel.formation}</p>}
-        {responsavel.registration && <p className="text-[11px] text-gray-500">Registro: {responsavel.registration}</p>}
+  const signatureEntrevistado = (formData as any).signatureEntrevistado || '';
+
+  const renderProfessional = () => {
+    if (!responsavel && !signatureEntrevistado) return null;
+    return (
+      <div data-pdf-section="professional" className={S.card}>
+        <h3 className={S.sectionTitle}>Validação</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {responsavel && (
+            <div className="border border-gray-200 rounded-md p-2.5">
+              <p className="text-[8px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Profissional Responsável</p>
+              <p className="text-[11px] font-bold text-gray-900 leading-tight">{responsavel.name}</p>
+              {responsavel.formation && <p className="text-[9px] text-gray-500 mt-0.5">{responsavel.formation}</p>}
+              {responsavel.registration && <p className="text-[9px] text-gray-500">Reg.: {responsavel.registration}</p>}
+            </div>
+          )}
+          {signatureEntrevistado && (
+            <div className="border border-gray-200 rounded-md p-2.5">
+              <p className="text-[8px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Assinatura do Entrevistado</p>
+              <img
+                src={signatureEntrevistado}
+                alt="Assinatura"
+                className="w-full max-h-24 object-contain bg-white"
+              />
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // =============================================
   // FOOTER

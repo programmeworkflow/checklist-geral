@@ -5,12 +5,14 @@ import {
   Shield, HardHat, GraduationCap, Settings, Menu, ChevronLeft,
   ChevronDown, FolderOpen, Stethoscope, UserCheck,
   FileText, Sun, Moon, ArrowLeft, X, PanelLeftClose, PanelLeft,
+  LogOut,
   LucideIcon,
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { navItemsStore } from '@/lib/storage';
+import { useAuth } from '@/hooks/useAuth';
 import logoColorida from '@/assets/logo-colorida.png';
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -51,8 +53,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { user, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const handleLogout = () => {
+    if (!confirm('Sair da conta?')) return;
+    logout();
+    navigate('/login', { replace: true });
+  };
 
   const { data: navItems = [] } = useQuery({
     queryKey: ['nav_items'],
@@ -181,6 +190,46 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         {/* ---- Footer ---- */}
         <div className="border-t border-white/[0.06] p-2 space-y-1">
           {configItem && renderNavItem(configItem)}
+
+          {/* Profissional logado */}
+          {user && (
+            <div
+              className={cn(
+                'mx-2 mt-1 rounded-lg bg-white/[0.04] border border-white/[0.06]',
+                isCol ? 'p-1.5 flex items-center justify-center' : 'px-2.5 py-2'
+              )}
+              title={isCol ? `${user.name} — Sair` : undefined}
+            >
+              {isCol ? (
+                <button
+                  onClick={handleLogout}
+                  className="h-7 w-7 rounded-md bg-primary/15 flex items-center justify-center text-sidebar-primary hover:bg-primary/25 transition-colors"
+                >
+                  <UserCheck className="h-3.5 w-3.5" />
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <div className="h-7 w-7 rounded-md bg-primary/15 flex items-center justify-center text-sidebar-primary shrink-0">
+                    <UserCheck className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-semibold text-white/90 truncate leading-tight">{user.name}</p>
+                    {user.formation && (
+                      <p className="text-[10px] text-sidebar-foreground/50 truncate leading-tight">{user.formation}</p>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="h-6 w-6 flex items-center justify-center rounded text-sidebar-foreground/50 hover:text-white hover:bg-white/[0.08] transition-colors shrink-0"
+                    title="Sair"
+                  >
+                    <LogOut className="h-3 w-3" />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className={cn('flex items-center', isCol ? 'flex-col gap-1 pt-1' : 'justify-between px-1 pt-1')}>
             <button
               onClick={() => setDark(!dark)}
