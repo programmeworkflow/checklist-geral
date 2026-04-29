@@ -17,9 +17,11 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
-      // 'prompt' = SW novo fica em waiting até o usuário aceitar.
-      // Garante que cadastros em andamento não sejam interrompidos por deploy.
-      registerType: "prompt",
+      // 'autoUpdate' = SW novo ativa automaticamente em todos os clients.
+      // Garante que TODA aba/PC pegue a versão nova sem intervenção manual.
+      // O autosave de checklist a cada 3s + react-query optimistic updates
+      // protegem contra perda de dados durante o reload.
+      registerType: "autoUpdate",
       includeAssets: ["favicon.png", "favicon.ico", "pwa-192x192.png", "pwa-512x512.png"],
       manifest: {
         name: "VISTEC — MedWork",
@@ -146,11 +148,11 @@ export default defineConfig(({ mode }) => ({
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api\//, /^\/rest\//, /^\/storage\//],
         cleanupOutdatedCaches: true,
-        // skipWaiting + clientsClaim DESLIGADOS: SW novo só ativa após
-        // confirmação do usuário (via banner). Deploys param de interromper
-        // operações em andamento (saves, autosaves, fetches longos).
-        skipWaiting: false,
-        clientsClaim: false,
+        // skipWaiting + clientsClaim ATIVADOS: SW novo assume controle
+        // imediatamente em todas as abas. Necessário pra que updates
+        // alcancem todos PCs sem precisar de hard refresh manual.
+        skipWaiting: true,
+        clientsClaim: true,
       },
       devOptions: {
         enabled: false,
