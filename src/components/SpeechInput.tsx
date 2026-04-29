@@ -48,19 +48,37 @@ export function SpeechInput({
 
     const recognition = new SpeechRecognition();
     recognition.lang = 'pt-BR';
-    recognition.continuous = true;
+    // continuous=false: stop após uma frase. Evita duplicação que ocorria
+    // em pt-BR no Chrome com continuous=true (cada pausa criava uma nova
+    // entry final com texto repetido — "atribuição atribuição atribuição").
+    recognition.continuous = false;
     recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
 
-    // Recompute full transcript from event.results every time — evita acumular/duplicar
+    // Pega APENAS o último resultado mais completo, faz dedupe defensivo
+    // contra repetições (alguns Chromes em pt-BR retornam duplicatas).
     recognition.onresult = (event: any) => {
-      let transcript = '';
+      // Coleta todos os finais + último interim
+      const finals: string[] = [];
+      let interim = '';
       for (let i = 0; i < event.results.length; i++) {
-        transcript += event.results[i][0].transcript;
-        // Espaço só entre resultados finais
-        if (event.results[i].isFinal && i < event.results.length - 1) {
-          transcript += ' ';
+        const text = (event.results[i][0]?.transcript || '').trim();
+        if (!text) continue;
+        if (event.results[i].isFinal) {
+          finals.push(text);
+        } else {
+          interim = text; // só guarda o último interim (sobrescreve)
         }
       }
+
+      // Dedupe consecutivo: "atribuição atribuição atribuição" → "atribuição"
+      const dedup: string[] = [];
+      for (const seg of finals) {
+        const last = dedup[dedup.length - 1];
+        if (!last || last.toLowerCase() !== seg.toLowerCase()) dedup.push(seg);
+      }
+
+      const transcript = (dedup.join(' ') + (interim ? ' ' + interim : '')).trim();
       const base = baseValueRef.current;
       const sep = base && transcript ? ' ' : '';
       onChange((base + sep + transcript).trim());
