@@ -8,6 +8,7 @@ import { SEVERITY_OPTIONS, PROBABILITY_OPTIONS } from './RiskMatrixHelp';
 import { getRiskColor } from '@/lib/riskColors';
 import { useQuery } from '@tanstack/react-query';
 import { reportBlocksStore, professionalsStore } from '@/lib/storage';
+import { useAuth } from '@/hooks/useAuth';
 import logoColorida from '@/assets/logo-colorida.png';
 import type { Risk, RiskCategory, SafetyMeasure, OccupationalExam, JobFunction, EPI, Training, ChecklistBlock, BlockField } from '@/lib/storage';
 
@@ -491,8 +492,9 @@ export function ChecklistReport(props: ReportProps) {
   // =============================================
   // PROFISSIONAL RESPONSÁVEL + ASSINATURA DO ENTREVISTADO
   // =============================================
-  const tecnicoId = (formData as any).tecnicoId || '';
-  const responsavel = professionals.find(p => p.id === tecnicoId);
+  const { user: authUser } = useAuth();
+  const tecnicoId = (formData as any).tecnicoId || authUser?.id || '';
+  const responsavel = professionals.find(p => p.id === tecnicoId) || authUser;
   const signatureEntrevistado = (formData as any).signatureEntrevistado || '';
 
   const renderProfessional = () => {
