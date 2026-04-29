@@ -14,8 +14,6 @@ interface Props {
   riskId: string;
 }
 
-const PERIODICITIES = [6, 12, 24] as const;
-
 export function RiskAssociations({ riskId }: Props) {
   const qc = useQueryClient();
   const [tab, setTab] = useState<'exames' | 'medidas'>('exames');
@@ -27,8 +25,24 @@ export function RiskAssociations({ riskId }: Props) {
   const { data: allRiskExams = [] } = useQuery({ queryKey: ['risk_exams'], queryFn: () => riskExamsStore.getAll() });
   const { data: allRiskMeasures = [] } = useQuery({ queryKey: ['risk_measures'], queryFn: () => riskMeasuresStore.getAll() });
 
-  const myExams = useMemo(() => allRiskExams.filter(re => re.riskId === riskId), [allRiskExams, riskId]);
-  const myMeasures = useMemo(() => allRiskMeasures.filter(rm => rm.riskId === riskId), [allRiskMeasures, riskId]);
+  // Ordem estável por nome do exame/medida — evita reordenação após update
+  const myExams = useMemo(() => {
+    return allRiskExams
+      .filter(re => re.riskId === riskId)
+      .map(re => ({ re, exam: allExams.find(e => e.id === re.examId) }))
+      .filter(x => x.exam)
+      .sort((a, b) => a.exam!.name.localeCompare(b.exam!.name, 'pt-BR'))
+      .map(x => x.re);
+  }, [allRiskExams, allExams, riskId]);
+
+  const myMeasures = useMemo(() => {
+    return allRiskMeasures
+      .filter(rm => rm.riskId === riskId)
+      .map(rm => ({ rm, measure: allMeasures.find(m => m.id === rm.measureId) }))
+      .filter(x => x.measure)
+      .sort((a, b) => a.measure!.name.localeCompare(b.measure!.name, 'pt-BR'))
+      .map(x => x.rm);
+  }, [allRiskMeasures, allMeasures, riskId]);
 
   const associatedExamIds = new Set(myExams.map(re => re.examId));
   const associatedMeasureIds = new Set(myMeasures.map(rm => rm.measureId));
@@ -53,9 +67,28 @@ export function RiskAssociations({ riskId }: Props) {
     qc.invalidateQueries({ queryKey: ['risk_exams'] });
   };
 
+  // Optimistic update: aplica no cache local IMEDIATAMENTE.
+  // Não invalida (que faria refetch e poderia reordenar/colapsar a UI).
+  // Em caso de erro, reverte.
   const updateExamFlag = async (re: RiskExam, patch: Partial<RiskExam>) => {
-    await riskExamsStore.update(re.id, patch as any);
-    qc.invalidateQueries({ queryKey: ['risk_exams'] });
+    const prev = qc.getQueryData<RiskExam[]>(['risk_exams']);
+    qc.setQueryData<RiskExam[]>(['risk_exams'], (old) =>
+      (old || []).map(r => r.id === re.id ? { ...r, ...patch } : r)
+    );
+    try {
+      await riskExamsStore.update(re.id, patch as any);
+    } catch (err) {
+      qc.setQueryData(['risk_exams'], prev); // rollback
+      toast.error('Falha ao atualizar — tente novamente');
+    }
+  };
+
+  // Ciclo periodicidade: 6 → 12 → 24 → 6
+  // (chave só aparece quando Period. checked, então não tem estado "sem")
+  const cyclePeriodicidade = (re: RiskExam) => {
+    const cur = re.periodicidade || 6;
+    const next: 6 | 12 | 24 = cur === 6 ? 12 : cur === 12 ? 24 : 6;
+    updateExamFlag(re, { periodicidade: next } as any);
   };
 
   const linkMeasure = async (measureId: string) => {
@@ -129,35 +162,42 @@ export function RiskAssociations({ riskId }: Props) {
                     <X className="h-3.5 w-3.5" />
                   </button>
                 </div>
-                <div className="flex flex-wrap gap-2 text-xs">
+                <div className="flex flex-wrap items-center gap-2 text-xs">
                   {TYPES.map(t => (
                     <label key={t.key} className="inline-flex items-center gap-1 cursor-pointer">
                       <Checkbox
                         checked={re[t.key] || false}
-                        onCheckedChange={(v) => updateExamFlag(re, { [t.key]: !!v } as any)}
+                        onCheckedChange={(v) => {
+                          // Ao marcar 'periodico' pela 1ª vez, default 6m.
+                          if (t.key === 'periodico' && v && !re.periodicidade) {
+                            updateExamFlag(re, { periodico: true, periodicidade: 6 } as any);
+                          } else {
+                            updateExamFlag(re, { [t.key]: !!v } as any);
+                          }
+                        }}
                         className="h-3.5 w-3.5"
                       />
                       <span className="text-foreground">{t.label}</span>
                     </label>
                   ))}
+
+                  {/* Periodicidade — chave seletora ao lado de Mudança,
+                       só aparece quando Period. está marcado.
+                       Click cicla: 6m → 12m → 24m → 6m */}
+                  {re.periodico && (
+                    <button
+                      type="button"
+                      onClick={() => cyclePeriodicidade(re)}
+                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border bg-primary/10 border-primary/40 text-primary transition-colors hover:bg-primary/20"
+                      title="Clique para alternar periodicidade"
+                    >
+                      <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                      <span className="font-medium">
+                        {re.periodicidade || 6}m
+                      </span>
+                    </button>
+                  )}
                 </div>
-                {re.periodico && (
-                  <div className="mt-2 flex items-center gap-2 text-xs">
-                    <span className="text-muted-foreground">Periodicidade:</span>
-                    {PERIODICITIES.map(p => (
-                      <label key={p} className="inline-flex items-center gap-1 cursor-pointer">
-                        <input
-                          type="radio"
-                          name={`per_${re.id}`}
-                          checked={re.periodicidade === p}
-                          onChange={() => updateExamFlag(re, { periodicidade: p } as any)}
-                          className="accent-primary"
-                        />
-                        {p}m
-                      </label>
-                    ))}
-                  </div>
-                )}
               </Card>
             );
           })}
