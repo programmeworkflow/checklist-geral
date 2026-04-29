@@ -54,10 +54,10 @@ interface ReportProps {
 // Style constants — fontes compactas para PDF (mais conteúdo por página)
 const S = {
   page: 'bg-white text-gray-900',
-  sectionTitle: 'text-[11px] font-bold text-gray-900 mb-1.5 pb-1 border-b-2 flex items-center gap-1.5',
-  label: 'text-[8px] font-semibold text-gray-500 uppercase tracking-wider',
-  value: 'text-[9px] text-gray-900',
-  card: 'border border-gray-200 rounded-md p-2.5 bg-white',
+  sectionTitle: 'text-[12px] font-bold text-gray-900 mb-2 pb-1.5 border-b-2 flex items-center gap-2',
+  label: 'text-[9px] font-semibold text-gray-500 uppercase tracking-wider',
+  value: 'text-[11px] text-gray-900',
+  card: 'border border-gray-200 rounded-md p-3 bg-white',
   headerBar: 'bg-gradient-to-r from-[#0C97C4] to-[#1B9B4E]',
 };
 
@@ -142,23 +142,23 @@ export function ChecklistReport(props: ReportProps) {
   const renderHeader = () => (
     <div data-pdf-section="header" className="overflow-hidden rounded-lg border border-gray-200">
       {/* Top gradient bar */}
-      <div className={`${S.headerBar} px-4 py-3 flex items-center gap-3`}>
-        <img src={logoColorida} alt="MedWork" className="h-9 bg-white rounded-md p-1" />
+      <div className={`${S.headerBar} px-6 py-4 flex items-center gap-4`}>
+        <img src={logoColorida} alt="MedWork" className="h-12 bg-white rounded-lg p-1.5" />
         <div className="text-white">
-          <h1 className="text-[14px] font-bold leading-tight">Entrevista de Percepção de Riscos Ocupacionais</h1>
-          <p className="text-[10px] opacity-90 mt-0.5">NR-01 · Item 1.5.3.3 · Percepção de Riscos</p>
+          <h1 className="text-[18px] font-bold leading-tight">Entrevista de Percepção de Riscos Ocupacionais</h1>
+          <p className="text-[12px] opacity-90 mt-0.5">NR-01 · Item 1.5.3.3 · Percepção de Riscos</p>
         </div>
       </div>
       {/* Company info bar */}
-      <div className="px-4 py-2 bg-gray-50 flex items-center justify-between gap-3 border-t border-gray-200">
-        <div className="flex items-center gap-2.5">
-          {companyLogo && <img src={companyLogo} alt="" className="h-8 w-8 object-contain rounded border border-gray-200 bg-white p-0.5" />}
+      <div className="px-6 py-3 bg-gray-50 flex items-center justify-between gap-4 border-t border-gray-200">
+        <div className="flex items-center gap-3">
+          {companyLogo && <img src={companyLogo} alt="" className="h-10 w-10 object-contain rounded border border-gray-200 bg-white p-0.5" />}
           <div>
-            <p className="text-[11px] font-bold text-gray-900">{companyName}</p>
-            <p className="text-[9px] text-gray-500">{sectorName} · {selectedFns.map(f => f.name).join(', ')}</p>
+            <p className="text-[14px] font-bold text-gray-900">{companyName}</p>
+            <p className="text-[11px] text-gray-500">{sectorName} · {selectedFns.map(f => f.name).join(', ')}</p>
           </div>
         </div>
-        <p className="text-[9px] text-gray-400">{new Date().toLocaleDateString('pt-BR')}</p>
+        <p className="text-[10px] text-gray-400">{new Date().toLocaleDateString('pt-BR')}</p>
       </div>
     </div>
   );
@@ -169,7 +169,7 @@ export function ChecklistReport(props: ReportProps) {
   const renderInfo = () => (
     <div data-pdf-section="info" className={S.card}>
       <h3 className={S.sectionTitle}>
-        <span className="inline-flex items-center justify-center h-5 w-5 rounded bg-[#0C97C4]/10 text-[#0C97C4] text-[10px] font-bold">1</span>
+        <span className="inline-flex items-center justify-center h-6 w-6 rounded bg-[#0C97C4]/10 text-[#0C97C4] text-[12px] font-bold">1</span>
         Informações Gerais
       </h3>
       <div className="flex gap-4">
@@ -183,19 +183,19 @@ export function ChecklistReport(props: ReportProps) {
                 ...(formData.funcionario ? [['Funcionário(s)', formData.funcionario]] : []),
               ].map(([label, value], i) => (
                 <tr key={i} className="border-b border-gray-100 last:border-0">
-                  <td className="py-1 pr-3 text-[8px] font-semibold text-gray-500 uppercase tracking-wider w-1/3">{label}</td>
-                  <td className="py-1 text-[10px] text-gray-900">{value}</td>
+                  <td className="py-2 pr-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wider w-1/3">{label}</td>
+                  <td className="py-2 text-[13px] text-gray-900">{value}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        {employeePhoto && <img src={employeePhoto} alt="" className="h-20 w-20 object-cover rounded-md border border-gray-200 shrink-0" />}
+        {employeePhoto && <img src={employeePhoto} alt="" className="h-24 w-24 object-cover rounded-lg border border-gray-200 shrink-0" />}
       </div>
       {formData.atribuicoes && (
         <div className="mt-3 pt-3 border-t border-gray-100">
           <p className={S.label}>Atribuições do cargo</p>
-          <p className="text-[10px] text-gray-700 mt-1 whitespace-pre-wrap leading-relaxed">{formData.atribuicoes}</p>
+          <p className="text-[12px] text-gray-700 mt-1 whitespace-pre-wrap leading-relaxed">{formData.atribuicoes}</p>
         </div>
       )}
     </div>
@@ -207,11 +207,11 @@ export function ChecklistReport(props: ReportProps) {
   const renderRisks = () => (
     <div data-pdf-section="risks" className={S.card}>
       <h3 className={S.sectionTitle}>
-        <span className="inline-flex items-center justify-center h-5 w-5 rounded bg-amber-100 text-amber-700 text-[10px] font-bold">2</span>
+        <span className="inline-flex items-center justify-center h-6 w-6 rounded bg-amber-100 text-amber-700 text-[12px] font-bold">2</span>
         Riscos Identificados
       </h3>
       {selectedRiskIds.length === 0 ? (
-        <p className="text-[10px] text-gray-400 italic">Nenhum risco selecionado.</p>
+        <p className="text-[12px] text-gray-400 italic">Nenhum risco selecionado.</p>
       ) : (
         <div className="space-y-3">
           {selectedRiskIds.map(rId => {
@@ -222,10 +222,10 @@ export function ChecklistReport(props: ReportProps) {
             return (
               <div key={rId} className="border border-gray-200 rounded-lg overflow-hidden">
                 <div className={`px-4 py-2 ${colors ? `${colors.bg} ${colors.text}` : 'bg-gray-100 text-gray-700'}`}>
-                  <span className="font-bold text-[10px]">{risk.name}</span>
-                  {cat && <span className="ml-2 text-[9px] opacity-70">({cat.name})</span>}
+                  <span className="font-bold text-[12px]">{risk.name}</span>
+                  {cat && <span className="ml-2 text-[10px] opacity-70">({cat.name})</span>}
                 </div>
-                <div className="px-4 py-2.5 space-y-1 text-[9px] bg-white">
+                <div className="px-4 py-2.5 space-y-1 text-[11px] bg-white">
                   <div><span className="text-gray-400">Fonte geradora:</span> <span className="text-gray-700 font-medium">{riskSources[rId] || '—'}</span></div>
                   <div><span className="text-gray-400">Exposição:</span> <span className="text-gray-700 font-medium">{riskExposures[rId] === 'Outra' ? riskExposureOther[rId] || '—' : riskExposures[rId] || '—'}</span></div>
                   <div className="flex gap-6">
@@ -247,18 +247,18 @@ export function ChecklistReport(props: ReportProps) {
   const renderConformities = () => (
     <div data-pdf-section="conformities" className={S.card}>
       <h3 className={S.sectionTitle}>
-        <span className="inline-flex items-center justify-center h-5 w-5 rounded bg-green-100 text-green-700 text-[10px] font-bold">3</span>
+        <span className="inline-flex items-center justify-center h-6 w-6 rounded bg-green-100 text-green-700 text-[12px] font-bold">3</span>
         Conformidades
       </h3>
       {conformities.length === 0 ? (
-        <p className="text-[10px] text-gray-400 italic">Nenhuma medida marcada como existente.</p>
+        <p className="text-[12px] text-gray-400 italic">Nenhuma medida marcada como existente.</p>
       ) : (
         <div className="space-y-1.5">
           {conformities.map(({ risk, measure }) => (
             <div key={measure.id} className="flex items-center gap-2 py-1.5 px-3 rounded-md bg-green-50 border border-green-200">
-              <span className="text-[9px] font-bold text-green-700 bg-green-100 px-1.5 py-0.5 rounded">EXISTENTE</span>
-              <span className="text-[10px] text-gray-800 font-medium">{measure.name}</span>
-              <span className="text-[9px] text-gray-400">({risk.name})</span>
+              <span className="text-[10px] font-bold text-green-700 bg-green-100 px-1.5 py-0.5 rounded">EXISTENTE</span>
+              <span className="text-[12px] text-gray-800 font-medium">{measure.name}</span>
+              <span className="text-[10px] text-gray-400">({risk.name})</span>
             </div>
           ))}
         </div>
@@ -272,22 +272,22 @@ export function ChecklistReport(props: ReportProps) {
   const renderNonConformities = () => (
     <div data-pdf-section="nonconformities" className={S.card}>
       <h3 className={S.sectionTitle}>
-        <span className="inline-flex items-center justify-center h-5 w-5 rounded bg-red-100 text-red-700 text-[10px] font-bold">4</span>
+        <span className="inline-flex items-center justify-center h-6 w-6 rounded bg-red-100 text-red-700 text-[12px] font-bold">4</span>
         Não Conformidades (Sugestão de Plano de Ação)
       </h3>
       {nonConformities.length === 0 && customActions.length === 0 ? (
-        <p className="text-[10px] text-gray-400 italic">Nenhuma medida marcada como não existente.</p>
+        <p className="text-[12px] text-gray-400 italic">Nenhuma medida marcada como não existente.</p>
       ) : (
         <div className="space-y-2">
           {nonConformities.map(({ risk, measure, note }) => (
             <div key={measure.id} className="rounded-lg border border-red-200 overflow-hidden">
               <div className="px-3 py-2 bg-red-50 flex items-center gap-2 flex-wrap">
-                <span className="text-[9px] font-bold text-red-700 bg-red-100 px-1.5 py-0.5 rounded">NÃO EXISTENTE</span>
-                <span className="text-[10px] text-gray-800 font-medium">{measure.name}</span>
-                <span className="text-[9px] text-gray-400">({risk.name})</span>
+                <span className="text-[10px] font-bold text-red-700 bg-red-100 px-1.5 py-0.5 rounded">NÃO EXISTENTE</span>
+                <span className="text-[12px] text-gray-800 font-medium">{measure.name}</span>
+                <span className="text-[10px] text-gray-400">({risk.name})</span>
               </div>
-              {note && <p className="px-2.5 py-1 text-[9px] text-gray-600 bg-white border-t border-red-100">Obs: {note}</p>}
-              <div className="px-2.5 py-1 bg-amber-50 border-t border-amber-200 text-[9px] text-amber-800 font-medium">
+              {note && <p className="px-3 py-1.5 text-[11px] text-gray-600 bg-white border-t border-red-100">Obs: {note}</p>}
+              <div className="px-3 py-1.5 bg-amber-50 border-t border-amber-200 text-[11px] text-amber-800 font-medium">
                 Sugestão: Implementar {measure.name}
               </div>
             </div>
@@ -311,15 +311,15 @@ export function ChecklistReport(props: ReportProps) {
   const renderNA = () => notApplicable.length > 0 ? (
     <div data-pdf-section="na" className={S.card}>
       <h3 className={S.sectionTitle}>
-        <span className="inline-flex items-center justify-center h-5 w-5 rounded bg-amber-100 text-amber-700 text-[10px] font-bold">—</span>
+        <span className="inline-flex items-center justify-center h-6 w-6 rounded bg-amber-100 text-amber-700 text-[12px] font-bold">—</span>
         Não se Aplica
       </h3>
       <div className="space-y-1">
         {notApplicable.map(({ risk, measure }) => (
           <div key={measure.id} className="flex items-center gap-2 py-1.5 px-3 rounded-md bg-amber-50 border border-amber-200">
-            <span className="text-[9px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">N/A</span>
-            <span className="text-[10px] text-gray-800">{measure.name}</span>
-            <span className="text-[9px] text-gray-400">({risk.name})</span>
+            <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">N/A</span>
+            <span className="text-[12px] text-gray-800">{measure.name}</span>
+            <span className="text-[10px] text-gray-400">({risk.name})</span>
           </div>
         ))}
       </div>
@@ -334,10 +334,10 @@ export function ChecklistReport(props: ReportProps) {
     return (
       <div data-pdf-section="epis" className={S.card}>
         <h3 className={S.sectionTitle}>
-          <span className="inline-flex items-center justify-center h-5 w-5 rounded bg-[#0C97C4]/10 text-[#0C97C4] text-[10px] font-bold">5</span>
+          <span className="inline-flex items-center justify-center h-6 w-6 rounded bg-[#0C97C4]/10 text-[#0C97C4] text-[12px] font-bold">5</span>
           EPIs
         </h3>
-        {items.length === 0 ? <p className="text-[10px] text-gray-400 italic">Nenhum EPI avaliado.</p> : (
+        {items.length === 0 ? <p className="text-[12px] text-gray-400 italic">Nenhum EPI avaliado.</p> : (
           <div className="flex flex-wrap gap-2">
             {items.map(epi => {
               const st = epiStatuses[epi.id] || 0;
@@ -346,8 +346,8 @@ export function ChecklistReport(props: ReportProps) {
               return (
                 <div key={epi.id} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border ${cls}`}>
                   {epi.image && <img src={epi.image} alt="" className="h-7 w-7 object-contain rounded" />}
-                  <span className="text-[9px] font-medium text-gray-800">{epi.name}</span>
-                  <span className="text-[8px] font-bold text-gray-500">{label}</span>
+                  <span className="text-[11px] font-medium text-gray-800">{epi.name}</span>
+                  <span className="text-[9px] font-bold text-gray-500">{label}</span>
                 </div>
               );
             })}
@@ -365,10 +365,10 @@ export function ChecklistReport(props: ReportProps) {
     return (
       <div data-pdf-section="trainings" className={S.card}>
         <h3 className={S.sectionTitle}>
-          <span className="inline-flex items-center justify-center h-5 w-5 rounded bg-[#1B9B4E]/10 text-[#1B9B4E] text-[10px] font-bold">6</span>
+          <span className="inline-flex items-center justify-center h-6 w-6 rounded bg-[#1B9B4E]/10 text-[#1B9B4E] text-[12px] font-bold">6</span>
           Treinamentos
         </h3>
-        {items.length === 0 ? <p className="text-[10px] text-gray-400 italic">Nenhum treinamento avaliado.</p> : (
+        {items.length === 0 ? <p className="text-[12px] text-gray-400 italic">Nenhum treinamento avaliado.</p> : (
           <div className="flex flex-wrap gap-2">
             {items.map(t => {
               const st = trainingStatuses[t.id] || 0;
@@ -376,8 +376,8 @@ export function ChecklistReport(props: ReportProps) {
               const label = st === 1 ? 'POSSUI' : st === 2 ? 'NÃO POSSUI' : 'N/A';
               return (
                 <div key={t.id} className={`px-2.5 py-1.5 rounded-lg border ${cls}`}>
-                  <span className="text-[9px] font-medium text-gray-800">{t.name}</span>
-                  <span className="text-[8px] font-bold text-gray-500 ml-1.5">{label}</span>
+                  <span className="text-[11px] font-medium text-gray-800">{t.name}</span>
+                  <span className="text-[9px] font-bold text-gray-500 ml-1.5">{label}</span>
                 </div>
               );
             })}
@@ -393,40 +393,40 @@ export function ChecklistReport(props: ReportProps) {
   const renderExams = () => (
     <div data-pdf-section="exams" className={S.card}>
       <h3 className={S.sectionTitle}>
-        <span className="inline-flex items-center justify-center h-5 w-5 rounded bg-purple-100 text-purple-700 text-[10px] font-bold">7</span>
+        <span className="inline-flex items-center justify-center h-6 w-6 rounded bg-purple-100 text-purple-700 text-[12px] font-bold">7</span>
         Exames por Função
       </h3>
       {examsByFunction.every(e => e.exams.length === 0) ? (
-        <p className="text-[10px] text-gray-400 italic">Nenhum exame vinculado.</p>
+        <p className="text-[12px] text-gray-400 italic">Nenhum exame vinculado.</p>
       ) : (
         <div className="space-y-4">
           {examsByFunction.map(({ fn, exams }) => (
             <div key={fn.id}>
-              <p className="text-[10px] font-bold text-gray-800 mb-1.5">{fn.name}</p>
+              <p className="text-[12px] font-bold text-gray-800 mb-1.5">{fn.name}</p>
               <div className="overflow-x-auto">
-                <Table className="text-[9px]">
+                <Table className="text-[11px]">
                   <TableHeader>
                     <TableRow className="bg-gray-50">
-                      <TableHead className="text-[9px] px-2 py-1 font-bold">Exame</TableHead>
-                      <TableHead className="text-[9px] px-1 py-1 text-center font-bold">Adm.</TableHead>
-                      <TableHead className="text-[9px] px-1 py-1 text-center font-bold">Dem.</TableHead>
-                      <TableHead className="text-[9px] px-1 py-1 text-center font-bold">Mud.</TableHead>
-                      <TableHead className="text-[9px] px-1 py-1 text-center font-bold">Ret.</TableHead>
-                      <TableHead className="text-[9px] px-1 py-1 text-center font-bold">Periódico</TableHead>
+                      <TableHead className="text-[10px] px-2 py-1.5 font-bold">Exame</TableHead>
+                      <TableHead className="text-[10px] px-1 py-1.5 text-center font-bold">Adm.</TableHead>
+                      <TableHead className="text-[10px] px-1 py-1.5 text-center font-bold">Dem.</TableHead>
+                      <TableHead className="text-[10px] px-1 py-1.5 text-center font-bold">Mud.</TableHead>
+                      <TableHead className="text-[10px] px-1 py-1.5 text-center font-bold">Ret.</TableHead>
+                      <TableHead className="text-[10px] px-1 py-1.5 text-center font-bold">Periódico</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {exams.map(ex => (
                       <TableRow key={ex.id}>
-                        <TableCell className="px-2 py-1">
+                        <TableCell className="px-2 py-1.5">
                           <span className="font-medium">{ex.name}</span>
-                          <span className="text-[8px] text-gray-400 ml-1">eSocial: {ex.esocialCode || '—'}</span>
+                          <span className="text-[9px] text-gray-400 ml-1">eSocial: {ex.esocialCode || '—'}</span>
                         </TableCell>
-                        <TableCell className="text-center px-1 py-1">{ex.admissional ? '✓' : '—'}</TableCell>
-                        <TableCell className="text-center px-1 py-1">{ex.demissional ? '✓' : '—'}</TableCell>
-                        <TableCell className="text-center px-1 py-1">{ex.mudanca ? '✓' : '—'}</TableCell>
-                        <TableCell className="text-center px-1 py-1">{ex.retornoTrabalho ? '✓' : '—'}</TableCell>
-                        <TableCell className="text-center px-1 py-1">{ex.periodico ? `${ex.periodicidade || 12} meses` : '—'}</TableCell>
+                        <TableCell className="text-center px-1 py-1.5">{ex.admissional ? '✓' : '—'}</TableCell>
+                        <TableCell className="text-center px-1 py-1.5">{ex.demissional ? '✓' : '—'}</TableCell>
+                        <TableCell className="text-center px-1 py-1.5">{ex.mudanca ? '✓' : '—'}</TableCell>
+                        <TableCell className="text-center px-1 py-1.5">{ex.retornoTrabalho ? '✓' : '—'}</TableCell>
+                        <TableCell className="text-center px-1 py-1.5">{ex.periodico ? `${ex.periodicidade || 12} meses` : '—'}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -458,7 +458,7 @@ export function ChecklistReport(props: ReportProps) {
       return (
         <div key={block.id} data-pdf-section={`custom-${block.id}`} className={S.card}>
           <h3 className={S.sectionTitle}>{block.name}</h3>
-          <div className="space-y-1.5 text-[10px]">
+          <div className="space-y-1.5 text-[12px]">
             {fields.map(field => {
               const val = formData[`custom_${block.id}_${field.id}`];
               if (!val?.trim()) return null;
@@ -482,10 +482,10 @@ export function ChecklistReport(props: ReportProps) {
   const renderObservations = () => observations?.trim() ? (
     <div data-pdf-section="observations" className={S.card}>
       <h3 className={S.sectionTitle}>
-        <span className="inline-flex items-center justify-center h-5 w-5 rounded bg-gray-100 text-gray-600 text-[10px] font-bold">*</span>
+        <span className="inline-flex items-center justify-center h-6 w-6 rounded bg-gray-100 text-gray-600 text-[12px] font-bold">*</span>
         Observações
       </h3>
-      <p className="text-[10px] text-gray-700 whitespace-pre-wrap leading-relaxed">{observations}</p>
+      <p className="text-[12px] text-gray-700 whitespace-pre-wrap leading-relaxed">{observations}</p>
     </div>
   ) : null;
 
@@ -506,9 +506,9 @@ export function ChecklistReport(props: ReportProps) {
           {responsavel && (
             <div className="border border-gray-200 rounded-md p-2.5">
               <p className="text-[8px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Profissional Responsável</p>
-              <p className="text-[9px] font-bold text-gray-900 leading-tight">{responsavel.name}</p>
-              {responsavel.formation && <p className="text-[8px] text-gray-500 mt-0.5">{responsavel.formation}</p>}
-              {responsavel.registration && <p className="text-[8px] text-gray-500">Reg.: {responsavel.registration}</p>}
+              <p className="text-[11px] font-bold text-gray-900 leading-tight">{responsavel.name}</p>
+              {responsavel.formation && <p className="text-[9px] text-gray-500 mt-0.5">{responsavel.formation}</p>}
+              {responsavel.registration && <p className="text-[9px] text-gray-500">Reg.: {responsavel.registration}</p>}
             </div>
           )}
           {signatureEntrevistado && (
@@ -533,10 +533,10 @@ export function ChecklistReport(props: ReportProps) {
     <div data-pdf-section="footer" className="rounded-lg border border-gray-200 overflow-hidden">
       <div className={`${S.headerBar} px-4 py-2 flex items-center gap-3`}>
         <img src={logoColorida} alt="MedWork" className="h-7 bg-white rounded p-0.5" />
-        <span className="text-white text-[9px] font-semibold">MedWork · VISTEC</span>
+        <span className="text-white text-[11px] font-semibold">MedWork · VISTEC</span>
       </div>
       <div className="px-4 py-2.5 bg-gray-50">
-        <p className="text-[9px] text-gray-500 italic leading-relaxed">
+        <p className="text-[10px] text-gray-500 italic leading-relaxed">
           A presente entrevista foi realizada em atendimento ao item 1.5.3.3 da NR-01, que dispõe sobre a adoção de mecanismos para consultar os trabalhadores quanto à percepção de riscos ocupacionais.
         </p>
       </div>

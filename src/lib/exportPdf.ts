@@ -19,7 +19,12 @@ export async function exportReportToPdf(element: HTMLElement, filename = 'relato
   const sections = element.querySelectorAll('[data-pdf-section]');
   const elements = sections.length > 0 ? Array.from(sections) as HTMLElement[] : [element];
 
-  // Capture each section separately
+  // Capture each section separately.
+  // windowWidth grande = mais conteúdo por mm no PDF = fontes menores no arquivo final.
+  // O elemento renderiza em viewport virtual de 1100px, que depois é encaixado
+  // em 190mm (CONTENT_W). Assim a tela permanece nas fontes originais (grandes),
+  // mas o PDF baixado fica compacto.
+  const PDF_CAPTURE_WIDTH = 1100;
   const captures: { canvas: HTMLCanvasElement; title: string }[] = [];
   for (const el of elements) {
     const canvas = await html2canvas(el, {
@@ -27,7 +32,7 @@ export async function exportReportToPdf(element: HTMLElement, filename = 'relato
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff',
-      windowWidth: 800,
+      windowWidth: PDF_CAPTURE_WIDTH,
     });
     captures.push({ canvas, title: el.getAttribute('data-pdf-section') || '' });
   }
