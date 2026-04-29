@@ -18,14 +18,14 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.png", "favicon.ico"],
+      includeAssets: ["favicon.png", "favicon.ico", "pwa-192x192.png", "pwa-512x512.png"],
       manifest: {
         name: "VISTEC — MedWork",
         short_name: "VISTEC",
         description:
           "Checklist de percepção de riscos ocupacionais — NR-01.",
         theme_color: "#0C97C4",
-        background_color: "#f5f7fa",
+        background_color: "#ffffff",
         display: "standalone",
         orientation: "portrait",
         start_url: "/",
@@ -33,16 +33,22 @@ export default defineConfig(({ mode }) => ({
         lang: "pt-BR",
         icons: [
           {
-            src: "/favicon.png",
+            src: "/pwa-192x192.png",
             sizes: "192x192",
             type: "image/png",
             purpose: "any",
           },
           {
-            src: "/favicon.png",
+            src: "/pwa-512x512.png",
             sizes: "512x512",
             type: "image/png",
-            purpose: "any maskable",
+            purpose: "any",
+          },
+          {
+            src: "/pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
           },
         ],
       },
