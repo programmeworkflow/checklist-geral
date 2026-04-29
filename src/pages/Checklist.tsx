@@ -731,7 +731,6 @@ const Checklist = () => {
                       value={riskSources[riskId] || ''}
                       onChange={val => setRiskSources(prev => ({ ...prev, [riskId]: val }))}
                       placeholder="Descreva a fonte geradora..."
-                      required
                       className={`mt-1 ${!riskSources[riskId]?.trim() ? 'border-destructive' : ''}`}
                     />
                   </div>
@@ -1075,7 +1074,6 @@ const Checklist = () => {
                                             value={riskSources[risk.id] || ''}
                                             onChange={val => setRiskSources(prev => ({ ...prev, [risk.id]: val }))}
                                             placeholder="Descreva a fonte geradora..."
-                                            required
                                             className={`mt-1 ${!riskSources[risk.id]?.trim() ? 'border-destructive' : ''}`}
                                           />
                                         </div>
