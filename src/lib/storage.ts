@@ -12,7 +12,13 @@ export interface Sector { id: string; companyId: string; name: string; }
 export interface JobFunction { id: string; sectorId: string; name: string; description?: string; audioDescription?: string; }
 export interface RiskCategory { id: string; name: string; type: string; }
 export interface Risk { id: string; categoryId: string; name: string; source: string; exposureType: string; recommendations: string; customFields: Record<string, string>; audioDescription?: string; }
-export interface SafetyMeasure { id: string; riskId: string; name: string; }
+export type SafetyMeasureCategory = 'epi' | 'geral';
+export interface SafetyMeasure {
+  id: string;
+  riskId: string;
+  name: string;
+  category?: SafetyMeasureCategory;
+}
 export interface Professional { id: string; name: string; formation: string; registration: string; }
 export interface OccupationalExam { id: string; riskId: string; name: string; esocialCode?: string; admissional: boolean; demissional: boolean; periodico: boolean; periodicidade?: 6 | 12 | 24; retornoTrabalho: boolean; mudanca: boolean; }
 export interface EPI { id: string; name: string; description: string; image?: string; }

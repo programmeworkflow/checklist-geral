@@ -74,15 +74,33 @@ export default function Medidas() {
         selectable
         fields={[
           { key: 'name', label: 'Nome da medida' },
+          {
+            key: 'category',
+            label: 'Categoria',
+            type: 'select',
+            options: [
+              { value: 'geral', label: 'Geral' },
+              { value: 'epi', label: 'EPI' },
+            ],
+          },
         ]}
-        onAdd={(data) => measures.add(data as any)}
+        onAdd={(data) => measures.add({ ...data, category: data.category || 'geral' } as any)}
         onUpdate={measures.update}
         onDelete={measures.remove}
         renderExtra={(item) => {
           const names = measureRiskNames.get(item.id) || [];
-          if (names.length === 0) return null;
+          const cat = (item.category || 'geral') as 'epi' | 'geral';
           return (
-            <div className="mt-2 flex flex-wrap gap-1">
+            <div className="mt-2 flex flex-wrap gap-1 items-center">
+              <Badge
+                className={
+                  cat === 'epi'
+                    ? 'text-[10px] bg-amber-100 text-amber-800 hover:bg-amber-100 border-0'
+                    : 'text-[10px] bg-blue-100 text-blue-800 hover:bg-blue-100 border-0'
+                }
+              >
+                {cat === 'epi' ? 'EPI' : 'Geral'}
+              </Badge>
               {names.slice(0, 3).map((n, i) => (
                 <Badge key={i} variant="outline" className="text-[10px]">{n}</Badge>
               ))}
