@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { CrudList } from '@/components/CrudList';
 import { SearchInput } from '@/components/SearchInput';
 import { GenericExcelImport } from '@/components/GenericExcelImport';
+import { sortByNameOutrosLast } from '@/lib/sortRisks';
 import { toast } from 'sonner';
 
 export default function Exames() {
@@ -18,7 +19,7 @@ export default function Exames() {
   const { data: allRisks = [] } = useQuery({ queryKey: ['risks'], queryFn: () => risksStore.getAll() });
 
   const filteredExams = useMemo(() => {
-    const sorted = [...exams.items].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+    const sorted = [...exams.items].sort(sortByNameOutrosLast);
     if (!search) return sorted;
     const q = search.toLowerCase();
     return sorted.filter(e => e.name.toLowerCase().includes(q) || ((e as any).esocialCode || '').toLowerCase().includes(q));

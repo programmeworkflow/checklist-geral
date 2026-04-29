@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { CrudList } from '@/components/CrudList';
 import { SearchInput } from '@/components/SearchInput';
 import { GenericExcelImport } from '@/components/GenericExcelImport';
+import { sortByNameOutrosLast } from '@/lib/sortRisks';
 import { toast } from 'sonner';
 
 export default function Medidas() {
@@ -18,7 +19,7 @@ export default function Medidas() {
   const { data: allRisks = [] } = useQuery({ queryKey: ['risks'], queryFn: () => risksStore.getAll() });
 
   const filteredMeasures = useMemo(() => {
-    const sorted = [...measures.items].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+    const sorted = [...measures.items].sort(sortByNameOutrosLast);
     if (!search) return sorted;
     return sorted.filter(m => m.name.toLowerCase().includes(search.toLowerCase()));
   }, [measures.items, search]);

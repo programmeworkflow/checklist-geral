@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { sortByNameOutrosLast } from '@/lib/sortRisks';
 
 interface Props {
   riskId: string;
@@ -25,13 +26,13 @@ export function RiskAssociations({ riskId }: Props) {
   const { data: allRiskExams = [] } = useQuery({ queryKey: ['risk_exams'], queryFn: () => riskExamsStore.getAll() });
   const { data: allRiskMeasures = [] } = useQuery({ queryKey: ['risk_measures'], queryFn: () => riskMeasuresStore.getAll() });
 
-  // Ordem estável por nome do exame/medida — evita reordenação após update
+  // Ordem estável A-Z com 'Outros...' sempre por último
   const myExams = useMemo(() => {
     return allRiskExams
       .filter(re => re.riskId === riskId)
       .map(re => ({ re, exam: allExams.find(e => e.id === re.examId) }))
       .filter(x => x.exam)
-      .sort((a, b) => a.exam!.name.localeCompare(b.exam!.name, 'pt-BR'))
+      .sort((a, b) => sortByNameOutrosLast(a.exam!, b.exam!))
       .map(x => x.re);
   }, [allRiskExams, allExams, riskId]);
 
@@ -40,16 +41,16 @@ export function RiskAssociations({ riskId }: Props) {
       .filter(rm => rm.riskId === riskId)
       .map(rm => ({ rm, measure: allMeasures.find(m => m.id === rm.measureId) }))
       .filter(x => x.measure)
-      .sort((a, b) => a.measure!.name.localeCompare(b.measure!.name, 'pt-BR'))
+      .sort((a, b) => sortByNameOutrosLast(a.measure!, b.measure!))
       .map(x => x.rm);
   }, [allRiskMeasures, allMeasures, riskId]);
 
   const associatedExamIds = new Set(myExams.map(re => re.examId));
   const associatedMeasureIds = new Set(myMeasures.map(rm => rm.measureId));
   const unassociatedExams = allExams.filter(e => !associatedExamIds.has(e.id))
-    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+    .sort(sortByNameOutrosLast);
   const unassociatedMeasures = allMeasures.filter(m => !associatedMeasureIds.has(m.id))
-    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+    .sort(sortByNameOutrosLast);
 
   const linkExam = async (examId: string) => {
     await riskExamsStore.add({

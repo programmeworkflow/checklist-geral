@@ -26,6 +26,7 @@ import { safeUploadFile, uploadBase64 } from '@/lib/uploadFile';
 import { FileSpreadsheet, FileDown } from 'lucide-react';
 import { SignaturePad } from '@/components/SignaturePad';
 import { useAuth } from '@/hooks/useAuth';
+import { sortByNameOutrosLast } from '@/lib/sortRisks';
 
 type Step = 'select' | 'fill';
 type MeasureStatus = 0 | 1 | 2 | 3;
@@ -1013,7 +1014,8 @@ const Checklist = () => {
                   <h2 className="bg-muted text-foreground px-4 py-3 font-semibold text-base">{block.name}</h2>
                   <div className="p-3 md:p-4 space-y-2">
                     {sortedRiskCategories.map(cat => {
-                      const catRisks = [...risks.filter(r => r.categoryId === cat.id)].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+                      // A-Z dentro da categoria, mas com riscos "Outros..." no fim
+                      const catRisks = [...risks.filter(r => r.categoryId === cat.id)].sort(sortByNameOutrosLast);
                       if (catRisks.length === 0) return null;
                       const colors = getRiskColor(cat.type);
                       const isOpen = openCategoryId === cat.id;

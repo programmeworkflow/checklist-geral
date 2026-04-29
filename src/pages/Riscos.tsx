@@ -10,6 +10,7 @@ import { AlertTriangle } from 'lucide-react';
 import { SearchInput } from '@/components/SearchInput';
 import { GenericExcelImport } from '@/components/GenericExcelImport';
 import { RiskAssociations } from '@/components/RiskAssociations';
+import { sortByNameOutrosLast } from '@/lib/sortRisks';
 
 export default function Riscos() {
   const riskCategories = useStore(riskCategoriesStore);
@@ -33,6 +34,7 @@ export default function Riscos() {
   });
 
   // Riscos: ordenar por categoria (A-Z, Outros no fim) e dentro da categoria A-Z
+  // com riscos "Outros..." sempre no fim (sortByNameOutrosLast)
   const sortedRisks = [...filteredRisks].sort((a, b) => {
     const catA = riskCategories.items.find(c => c.id === a.categoryId);
     const catB = riskCategories.items.find(c => c.id === b.categoryId);
@@ -40,7 +42,7 @@ export default function Riscos() {
     if (catB?.type === 'other' && catA?.type !== 'other') return -1;
     const catCmp = (catA?.name || '').localeCompare(catB?.name || '', 'pt-BR');
     if (catCmp !== 0) return catCmp;
-    return a.name.localeCompare(b.name, 'pt-BR');
+    return sortByNameOutrosLast(a, b);
   });
 
   const handleRiskImport = async (rows: Record<string, string>[]) => {
