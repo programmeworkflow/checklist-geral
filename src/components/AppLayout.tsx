@@ -230,24 +230,51 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           )}
 
-          <div className={cn('flex items-center', isCol ? 'flex-col gap-1 pt-1' : 'justify-between px-1 pt-1')}>
-            <button
-              onClick={() => setDark(!dark)}
-              className="h-8 w-8 flex items-center justify-center rounded-lg text-sidebar-foreground/50 hover:text-white hover:bg-white/[0.06] transition-colors"
-              title={dark ? 'Modo claro' : 'Modo escuro'}
-            >
-              {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </button>
-            {!mobile && (
-              <button
-                onClick={() => setCollapsed(!collapsed)}
-                className="h-8 w-8 hidden md:flex items-center justify-center rounded-lg text-sidebar-foreground/50 hover:text-white hover:bg-white/[0.06] transition-colors"
-                title={collapsed ? 'Expandir menu' : 'Recolher menu'}
-              >
-                {collapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-              </button>
+          {/* Tema — mesmo padrão dos itens de menu (ícone + label) */}
+          <button
+            onClick={() => setDark(!dark)}
+            title={isCol ? (dark ? 'Modo claro' : 'Modo escuro') : undefined}
+            className={cn(
+              'group flex items-center gap-3 rounded-lg transition-all duration-150 mx-2 w-[calc(100%-1rem)]',
+              'py-2.5 px-3 text-[0.82rem]',
+              isCol && 'justify-center px-0 mx-auto w-10 h-10',
+              'text-sidebar-foreground hover:bg-white/[0.06] hover:text-white'
             )}
-          </div>
+          >
+            {dark ? (
+              <Sun className={cn(
+                'shrink-0 transition-colors duration-150 text-sidebar-foreground/60 group-hover:text-white',
+                isCol ? 'h-5 w-5' : 'h-[17px] w-[17px]'
+              )} />
+            ) : (
+              <Moon className={cn(
+                'shrink-0 transition-colors duration-150 text-sidebar-foreground/60 group-hover:text-white',
+                isCol ? 'h-5 w-5' : 'h-[17px] w-[17px]'
+              )} />
+            )}
+            {!isCol && <span className="truncate">Tema</span>}
+          </button>
+
+          {/* Recolher — só desktop, formato compacto */}
+          {!mobile && !isCol && (
+            <button
+              onClick={() => setCollapsed(!collapsed)}
+              className="hidden md:flex items-center gap-3 rounded-lg transition-all duration-150 mx-2 w-[calc(100%-1rem)] py-2.5 px-3 text-[0.82rem] text-sidebar-foreground hover:bg-white/[0.06] hover:text-white group"
+              title="Recolher menu"
+            >
+              <PanelLeftClose className="h-[17px] w-[17px] shrink-0 text-sidebar-foreground/60 group-hover:text-white transition-colors" />
+              <span className="truncate">Recolher</span>
+            </button>
+          )}
+          {!mobile && isCol && (
+            <button
+              onClick={() => setCollapsed(!collapsed)}
+              className="hidden md:flex items-center justify-center rounded-lg w-10 h-10 mx-auto text-sidebar-foreground/50 hover:text-white hover:bg-white/[0.06] transition-colors"
+              title="Expandir menu"
+            >
+              <PanelLeft className="h-5 w-5" />
+            </button>
+          )}
         </div>
       </div>
     );
