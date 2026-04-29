@@ -82,6 +82,7 @@ export default function Medidas() {
               { value: 'geral', label: 'Geral' },
               { value: 'epi', label: 'EPI' },
             ],
+            hidden: true, // Não aparece duplicado no display — badge no renderExtra já mostra
           },
         ]}
         onAdd={(data) => measures.add({ ...data, category: data.category || 'geral' } as any)}
