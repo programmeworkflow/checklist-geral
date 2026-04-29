@@ -17,7 +17,9 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
-      registerType: "autoUpdate",
+      // 'prompt' = SW novo fica em waiting até o usuário aceitar.
+      // Garante que cadastros em andamento não sejam interrompidos por deploy.
+      registerType: "prompt",
       includeAssets: ["favicon.png", "favicon.ico", "pwa-192x192.png", "pwa-512x512.png"],
       manifest: {
         name: "VISTEC — MedWork",
@@ -85,8 +87,11 @@ export default defineConfig(({ mode }) => ({
             method: "GET",
             options: {
               cacheName: "supabase-rest",
-              networkTimeoutSeconds: 5,
-              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 7 },
+              // Timeout 15s: dá tempo pra rede responder em conexões lentas
+              // antes de cair no cache. Antes era 5s — fazia cache antigo
+              // ser servido em redes médias.
+              networkTimeoutSeconds: 15,
+              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 1 }, // 1 dia (era 7)
               cacheableResponse: { statuses: [0, 200, 206] },
             },
           },
@@ -141,8 +146,11 @@ export default defineConfig(({ mode }) => ({
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api\//, /^\/rest\//, /^\/storage\//],
         cleanupOutdatedCaches: true,
-        skipWaiting: true,
-        clientsClaim: true,
+        // skipWaiting + clientsClaim DESLIGADOS: SW novo só ativa após
+        // confirmação do usuário (via banner). Deploys param de interromper
+        // operações em andamento (saves, autosaves, fetches longos).
+        skipWaiting: false,
+        clientsClaim: false,
       },
       devOptions: {
         enabled: false,

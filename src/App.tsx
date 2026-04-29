@@ -26,7 +26,19 @@ import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Sempre buscar dados frescos quando o usuário voltar à aba ou
+      // reconectar internet. Evita que mudanças feitas em outro lugar
+      // (outra aba, outro device, post-deploy) fiquem invisíveis.
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+      staleTime: 10_000, // 10s — depois disso, considera dado stale
+      retry: 1,
+    },
+  },
+});
 
 function ProtectedRoutes() {
   const { isAuthenticated, isLoading } = useAuth();
