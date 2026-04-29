@@ -1040,16 +1040,7 @@ const Checklist = () => {
                                   <div key={risk.id}>
                                     <button
                                       type="button"
-                                      onClick={() => {
-                                        if (isSelected && isActive) {
-                                          setActiveRiskId(null);
-                                        } else if (isSelected && !isActive) {
-                                          setActiveRiskId(risk.id);
-                                        } else {
-                                          toggleRisk(risk.id);
-                                          setActiveRiskId(risk.id);
-                                        }
-                                      }}
+                                      onClick={() => toggleRisk(risk.id)}
                                       className={`w-full text-left px-3 py-2.5 rounded-lg border-2 transition-all text-base
                                         ${isSelected
                                           ? 'bg-green-100 border-green-500 dark:bg-green-900/30 dark:border-green-600'
