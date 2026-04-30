@@ -27,7 +27,7 @@ import { FileSpreadsheet, FileDown } from 'lucide-react';
 import { SignaturePad } from '@/components/SignaturePad';
 import { useAuth } from '@/hooks/useAuth';
 import { sortByNameOutrosLast } from '@/lib/sortRisks';
-import { generateRiskFieldsWithAI } from '@/lib/aiRiskAnalyzer';
+import { generateFonteGeradora } from '@/lib/aiRiskAnalyzer';
 
 type Step = 'select' | 'fill';
 type MeasureStatus = 0 | 1 | 2 | 3;
@@ -74,7 +74,6 @@ const Checklist = () => {
   const handleGerarComIA = async (riskId: string) => {
     const risk = risks.find(r => r.id === riskId);
     if (!risk) return;
-    // Pega o primeiro cargo selecionado e suas atribuições
     const fn = selectedFns[0];
     if (!fn) {
       toast.error('Nenhum cargo selecionado');
@@ -82,23 +81,20 @@ const Checklist = () => {
     }
     const atribuicoes = (fn.description || '').trim();
     if (!atribuicoes) {
-      toast.error(`Cargo "${fn.name}" não tem atribuições cadastradas`);
+      toast.error(`Cargo "${fn.name}" não tem atribuições cadastradas — preencha em Cargos primeiro`);
       return;
     }
     const cat = riskCategories.find(c => c.id === risk.categoryId);
     setAiLoading(prev => ({ ...prev, [riskId]: true }));
     try {
-      const out = await generateRiskFieldsWithAI({
+      const text = await generateFonteGeradora({
         cargoNome: fn.name,
         cargoAtribuicoes: atribuicoes,
         riscoNome: risk.name,
         riscoCategoria: cat?.name,
       });
-      setRiskSources(prev => ({ ...prev, [riskId]: out.fonte }));
-      setRiskExposures(prev => ({ ...prev, [riskId]: out.exposicao }));
-      setRiskSeverity(prev => ({ ...prev, [riskId]: out.severidade }));
-      setRiskProbability(prev => ({ ...prev, [riskId]: out.probabilidade }));
-      toast.success('Campos preenchidos pela IA');
+      setRiskSources(prev => ({ ...prev, [riskId]: text }));
+      toast.success('Fonte geradora preenchida pela IA');
     } catch (err: any) {
       console.error('IA error:', err);
       toast.error(`IA: ${err?.message || 'falha desconhecida'}`);
