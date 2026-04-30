@@ -27,7 +27,7 @@ import { FileSpreadsheet, FileDown } from 'lucide-react';
 import { SignaturePad } from '@/components/SignaturePad';
 import { useAuth } from '@/hooks/useAuth';
 import { sortByNameOutrosLast } from '@/lib/sortRisks';
-import { generateFonteGeradora } from '@/lib/aiRiskAnalyzer';
+import { generateFonteGeradora, generateCargoDescription } from '@/lib/aiRiskAnalyzer';
 
 type Step = 'select' | 'fill';
 type MeasureStatus = 0 | 1 | 2 | 3;
@@ -79,14 +79,30 @@ const Checklist = () => {
       toast.error('Nenhum cargo selecionado');
       return;
     }
-    const atribuicoes = (fn.description || '').trim();
-    if (!atribuicoes) {
-      toast.error(`Cargo "${fn.name}" não tem atribuições cadastradas — preencha em Cargos primeiro`);
-      return;
-    }
     const cat = riskCategories.find(c => c.id === risk.categoryId);
+    const sec = allSectors.find(s => s.id === fn.sectorId);
+    const co = sec ? companies.find(c => c.id === sec.companyId) : null;
     setAiLoading(prev => ({ ...prev, [riskId]: true }));
+
     try {
+      // Se cargo não tem atribuições, gera automaticamente primeiro
+      let atribuicoes = (fn.description || '').trim();
+      if (!atribuicoes) {
+        toast.info(`Gerando atribuições do cargo "${fn.name}" primeiro…`);
+        atribuicoes = await generateCargoDescription({
+          cargoNome: fn.name,
+          setor: sec?.name,
+          empresa: co?.name,
+        });
+        // Persiste no cargo pra evitar gerar de novo
+        try {
+          await functionsStore.update(fn.id, { description: atribuicoes } as any);
+          qc.invalidateQueries({ queryKey: ['functions'] });
+        } catch (e) {
+          console.warn('falha ao salvar description gerada:', e);
+        }
+      }
+
       const text = await generateFonteGeradora({
         cargoNome: fn.name,
         cargoAtribuicoes: atribuicoes,
