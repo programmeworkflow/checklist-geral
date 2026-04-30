@@ -565,78 +565,104 @@ const Checklist = () => {
   const handleExportExcel = () => {
     try {
       const filename = `relatorio_${company?.name?.replace(/\s+/g, '_') || 'checklist'}`;
-      const statusText = (st: number | undefined) =>
-        st === 1 ? 'Conforme' : st === 2 ? 'Não conforme' : st === 3 ? 'N/A' : 'Não avaliado';
       const sevLabel = (v?: string) => {
         const opt = SEVERITY_OPTIONS.find(o => String(o.value) === String(v));
-        return opt ? opt.label : '—';
+        return opt ? opt.label : '';
       };
       const probLabel = (v?: string) => {
         const opt = PROBABILITY_OPTIONS.find(o => String(o.value) === String(v));
-        return opt ? opt.label : '—';
+        return opt ? opt.label : '';
       };
 
-      const risksData = selectedRiskIds.map(id => {
-        const r = risks.find(x => x.id === id);
-        const cat = riskCategories.find(c => c.id === r?.categoryId);
+      // EPIs separados por status — globais (não por risco)
+      const episExistentesGlobal = Object.entries(epiStatuses)
+        .filter(([, st]) => st === 1)
+        .map(([id]) => epis.find(e => e.id === id)?.name || '')
+        .filter(Boolean);
+      const episAImplementarGlobal = Object.entries(epiStatuses)
+        .filter(([, st]) => st === 2)
+        .map(([id]) => epis.find(e => e.id === id)?.name || '')
+        .filter(Boolean);
+
+      // Para cada cargo, monta um bloco completo
+      const cargos = selectedFns.map(fn => {
+        const riscos = selectedRiskIds.map(rid => {
+          const r = risks.find(x => x.id === rid);
+          // medidas vinculadas a este risco específico
+          const measuresOfRisk = getMeasuresForRisk(rid);
+          const medidasExistentes = measuresOfRisk
+            .filter(m => measureStatuses[m.id] === 1)
+            .map(m => m.name);
+          const medidasAImplementar = measuresOfRisk
+            .filter(m => measureStatuses[m.id] === 2)
+            .map(m => m.name);
+
+          return {
+            riscoNome: r?.name || '',
+            fonteGeradora: riskSources[rid] || '',
+            tipoExposicao: riskExposures[rid] === 'Outra'
+              ? (riskExposureOther[rid] || 'Outra')
+              : (riskExposures[rid] || ''),
+            probabilidade: probLabel(riskProbability[rid]),
+            severidade: sevLabel(riskSeverity[rid]),
+            episExistentes: episExistentesGlobal,
+            episAImplementar: episAImplementarGlobal,
+            medidasExistentes,
+            medidasAImplementar,
+          };
+        });
+
+        // Exames consolidados deste cargo: OR-merge dos tipos / MIN periodicidade
+        const examMap = new Map<string, {
+          examName: string;
+          admissional: boolean;
+          demissional: boolean;
+          mudanca: boolean;
+          retornoTrabalho: boolean;
+          periodico: boolean;
+          periodicidade?: 6 | 12 | 24;
+        }>();
+        for (const rid of selectedRiskIds) {
+          for (const ex of getExamsForRisk(rid)) {
+            const existing = examMap.get(ex.name);
+            if (!existing) {
+              examMap.set(ex.name, {
+                examName: ex.name,
+                admissional: !!ex.admissional,
+                demissional: !!ex.demissional,
+                mudanca: !!ex.mudanca,
+                retornoTrabalho: !!ex.retornoTrabalho,
+                periodico: !!ex.periodico,
+                periodicidade: ex.periodico ? (ex.periodicidade as 6 | 12 | 24 | undefined) : undefined,
+              });
+            } else {
+              existing.admissional = existing.admissional || !!ex.admissional;
+              existing.demissional = existing.demissional || !!ex.demissional;
+              existing.mudanca = existing.mudanca || !!ex.mudanca;
+              existing.retornoTrabalho = existing.retornoTrabalho || !!ex.retornoTrabalho;
+              const p1 = existing.periodicidade;
+              const p2 = ex.periodico ? (ex.periodicidade as 6 | 12 | 24 | undefined) : undefined;
+              if (p1 && p2) existing.periodicidade = (Math.min(p1, p2) as 6 | 12 | 24);
+              else existing.periodicidade = p1 || p2;
+              existing.periodico = existing.periodico || !!ex.periodico;
+            }
+          }
+        }
+
         return {
-          categoria: cat?.name || '—',
-          nome: r?.name || '—',
-          fonte: riskSources[id] || '—',
-          exposicao: riskExposures[id] === 'Outra'
-            ? (riskExposureOther[id] || 'Outra')
-            : (riskExposures[id] || '—'),
-          severidade: sevLabel(riskSeverity[id]),
-          probabilidade: probLabel(riskProbability[id]),
+          cargoNome: fn.name,
+          descricaoAtividades: fn.description || '',
+          riscos,
+          exames: Array.from(examMap.values()),
         };
       });
 
-      const nonConformities: { risco: string; medida: string; nota?: string }[] = [];
-      const conformities: { risco: string; medida: string }[] = [];
-      selectedRiskIds.forEach(rId => {
-        const r = risks.find(x => x.id === rId);
-        getMeasuresForRisk(rId).forEach(m => {
-          const st = measureStatuses[m.id] || 0;
-          if (st === 1) conformities.push({ risco: r?.name || '—', medida: m.name });
-          if (st === 2) nonConformities.push({ risco: r?.name || '—', medida: m.name, nota: measureNotes[m.id] });
-        });
-      });
-
-      const actionPlan = [
-        ...nonConformities.map(n => ({ acao: `${n.medida}${n.nota ? ' — ' + n.nota : ''} (${n.risco})`, tipo: 'medida' as const })),
-        ...customActions.filter(a => a.trim()).map(a => ({ acao: a, tipo: 'custom' as const })),
-      ];
-
-      const epiList = Object.entries(epiStatuses)
-        .filter(([, v]) => v > 0)
-        .map(([id, st]) => {
-          const e = epis.find(x => x.id === id);
-          return { nome: e?.name || '—', status: statusText(st as number) };
-        });
-
-      const trainingList = Object.entries(trainingStatuses)
-        .filter(([, v]) => v > 0)
-        .map(([id, st]) => {
-          const t = trainings.find(x => x.id === id);
-          return { nome: t?.name || '—', status: statusText(st as number) };
-        });
-
       exportReportToExcel({
         filename,
-        empresa: company?.name || '—',
-        empresaDoc: company?.doc,
-        setor: sector?.name || '—',
-        funcoes: selectedFns.map(f => f.name),
-        data: new Date().toLocaleDateString('pt-BR'),
-        tecnico: formData.tecnico,
-        funcionario: formData.funcionario,
-        observations,
-        risks: risksData,
-        nonConformities,
-        conformities,
-        actionPlan,
-        epis: epiList,
-        trainings: trainingList,
+        empresa: company?.name || '',
+        cnpj: company?.doc || '',
+        setor: sector?.name || '',
+        cargos,
       });
     } catch (err) {
       console.error(err);
