@@ -1165,25 +1165,37 @@ const Checklist = () => {
                                 const riskKey = `risk_${risk.id}`;
                                 return (
                                   <div key={risk.id}>
-                                    <button
-                                      type="button"
-                                      onClick={() => toggleRisk(risk.id)}
-                                      className={`w-full text-left px-3 py-2.5 rounded-lg border-2 transition-all text-base
+                                    <div
+                                      className={`w-full flex items-stretch rounded-lg border-2 transition-all overflow-hidden
                                         ${isSelected
                                           ? 'bg-green-100 border-green-500 dark:bg-green-900/30 dark:border-green-600'
                                           : 'bg-background border-input hover:border-muted-foreground/30'}
                                         ${isActive ? 'ring-2 ring-primary ring-offset-1' : ''}
                                       `}
                                     >
-                                      <div className="flex items-center justify-between">
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleRisk(risk.id)}
+                                        className="flex-1 text-left px-3 py-2.5 text-base"
+                                      >
                                         <span className={`font-medium ${isSelected ? 'text-green-800 dark:text-green-300' : 'text-foreground'}`}>
                                           {risk.name}
                                         </span>
-                                        {isSelected && (
+                                      </button>
+                                      {isSelected && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveRiskId(activeRiskId === risk.id ? null : risk.id);
+                                          }}
+                                          aria-label={isActive ? 'Recolher detalhes' : 'Expandir detalhes'}
+                                          className="px-3 flex items-center justify-center hover:bg-green-200/50 dark:hover:bg-green-900/40 transition-colors border-l border-green-500/40"
+                                        >
                                           <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isActive ? 'rotate-90' : ''}`} />
-                                        )}
-                                      </div>
-                                    </button>
+                                        </button>
+                                      )}
+                                    </div>
                                     {/* Inline risk details */}
                                     {isSelected && isActive && (
                                       <div className="mt-1 mb-2 border border-border rounded-lg p-4 bg-muted/10 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
