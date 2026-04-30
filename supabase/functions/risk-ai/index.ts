@@ -73,8 +73,10 @@ async function callOpenAI(model: string, system: string, userMsg: string): Promi
   const apiKey = Deno.env.get("OPENAI_API_KEY");
   if (!apiKey) throw new Error("OPENAI_API_KEY não configurada");
 
-  // Modelos o1/o3 não aceitam system message — vai dentro do user message
+  // o1/o3: não aceitam system message
   const isReasoning = /^o[13]/i.test(model);
+  // GPT-5 family + reasoning models usam max_completion_tokens
+  const usesCompletionTokens = isReasoning || /^gpt-5/i.test(model);
 
   const messages = isReasoning
     ? [{ role: "user", content: `${system}\n\n---\n\n${userMsg}` }]
@@ -84,8 +86,7 @@ async function callOpenAI(model: string, system: string, userMsg: string): Promi
       ];
 
   const body: any = { model, messages };
-  // o1/o3 usa max_completion_tokens, demais usam max_tokens
-  if (isReasoning) body.max_completion_tokens = 2000;
+  if (usesCompletionTokens) body.max_completion_tokens = 2000;
   else body.max_tokens = 1500;
 
   const r = await fetch("https://api.openai.com/v1/chat/completions", {
