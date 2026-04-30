@@ -132,6 +132,14 @@ export const professionalsStore = createCrud<Professional>('professionals');
 export const riskMeasuresStore = createCrud<RiskMeasure>('risk_measures');
 export const riskExamsStore = createCrud<RiskExam>('risk_exams');
 
+export interface AIConfig {
+  id: string;
+  systemPrompt: string;
+  model: string;
+  updatedAt?: string;
+}
+export const aiConfigStore = createCrud<AIConfig>('ai_config');
+
 // ============================================
 // SEED DEFAULTS (async)
 // ============================================

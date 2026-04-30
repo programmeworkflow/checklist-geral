@@ -19,6 +19,7 @@ const FIELD_MAPS: Record<string, Record<string, string>> = {
   professionals:      {},
   risk_measures:      { riskId: 'risk_id', measureId: 'measure_id', createdAt: 'created_at' },
   risk_exams:         { riskId: 'risk_id', examId: 'exam_id', esocialCode: 'esocial_code', retornoTrabalho: 'retorno_trabalho', createdAt: 'created_at' },
+  ai_config:          { systemPrompt: 'system_prompt', updatedAt: 'updated_at' },
 };
 
 // Build reverse maps once

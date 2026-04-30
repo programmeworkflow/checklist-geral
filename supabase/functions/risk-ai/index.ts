@@ -3,10 +3,12 @@
  * Edge Function risk-ai
  *
  * Recebe { cargoNome, cargoAtribuicoes, riscoNome, riscoCategoria? }
+ * Lê o system_prompt e o model da tabela ai_config (id='risk-ai')
  * Chama Anthropic Claude API e retorna JSON com:
  *   { fonte, exposicao, severidade, probabilidade }
  *
  * Necessita secret: ANTHROPIC_API_KEY
+ * Necessita secret: SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY (auto-injetados)
  */
 
 const CORS = {
@@ -15,45 +17,45 @@ const CORS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const SYSTEM_PROMPT = `Você é um especialista em segurança do trabalho (NR-01) que analisa riscos ocupacionais.
+const FALLBACK_PROMPT = `Você é um especialista em segurança do trabalho (NR-01) que analisa riscos ocupacionais.
 
 Dado um cargo, suas atribuições e um nome de risco identificado, sua tarefa é inferir 4 campos:
 
-1. fonte (string): a FONTE GERADORA do risco — descrição CURTA (1-2 frases, máx 200 chars) explicando concretamente como/onde esse risco surge nas atividades do cargo. Use linguagem técnica de SST.
+1. fonte (string): a FONTE GERADORA do risco — descrição CURTA (1-2 frases) explicando concretamente como/onde esse risco surge nas atividades do cargo.
 
-2. exposicao (enum): tipo de exposição. Escolha EXATAMENTE uma destas opções:
-   - "Contínua/Permanente" (cargo passa a maior parte do tempo exposto)
-   - "Intermitente" (com intervalos regulares)
-   - "Habitual" (frequente mas não permanente)
-   - "Eventual/Ocasional" (raro, esporádico)
-   - "Outra" (último recurso)
+2. exposicao (enum): "Contínua/Permanente" | "Intermitente" | "Habitual" | "Eventual/Ocasional" | "Outra".
 
-3. severidade (string '0'-'5'): gravidade do dano caso o risco ocorra.
-   - "1" = Sem dano (irrelevante)
-   - "2" = Baixa (lesões leves, primeiros socorros)
-   - "3" = Moderada (afastamento curto)
-   - "4" = Alta (lesão grave, afastamento longo, invalidez parcial)
-   - "5" = Catastrófica (óbito, invalidez permanente)
+3. severidade (string '1'-'5').
 
-4. probabilidade (string '0'-'5'): chance de ocorrência.
-   - "1" = Muito improvável (raro, controles fortes)
-   - "2" = Pouco provável
-   - "3" = Provável
-   - "4" = Muito provável (frequente)
-   - "5" = Quase certo
+4. probabilidade (string '1'-'5').
 
-Retorne APENAS um JSON válido no formato:
-{"fonte":"...","exposicao":"...","severidade":"X","probabilidade":"X"}
+Retorne APENAS JSON: {"fonte":"...","exposicao":"...","severidade":"X","probabilidade":"X"}`;
 
-Nada mais. Sem markdown, sem comentários.`;
+async function loadPrompt(): Promise<{ prompt: string; model: string }> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !serviceKey) {
+    return { prompt: FALLBACK_PROMPT, model: "claude-haiku-4-5-20251001" };
+  }
+  try {
+    const r = await fetch(`${supabaseUrl}/rest/v1/ai_config?id=eq.risk-ai&select=system_prompt,model`, {
+      headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+    });
+    if (!r.ok) return { prompt: FALLBACK_PROMPT, model: "claude-haiku-4-5-20251001" };
+    const rows = await r.json();
+    if (!rows.length) return { prompt: FALLBACK_PROMPT, model: "claude-haiku-4-5-20251001" };
+    return {
+      prompt: rows[0].system_prompt || FALLBACK_PROMPT,
+      model: rows[0].model || "claude-haiku-4-5-20251001",
+    };
+  } catch {
+    return { prompt: FALLBACK_PROMPT, model: "claude-haiku-4-5-20251001" };
+  }
+}
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: CORS });
-  }
-  if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405, headers: CORS });
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: CORS });
 
   try {
     const { cargoNome, cargoAtribuicoes, riscoNome, riscoCategoria } = await req.json();
@@ -66,11 +68,10 @@ Deno.serve(async (req) => {
 
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!apiKey) {
-      return Response.json(
-        { error: "ANTHROPIC_API_KEY não configurada nas secrets" },
-        { status: 500, headers: CORS }
-      );
+      return Response.json({ error: "ANTHROPIC_API_KEY não configurada" }, { status: 500, headers: CORS });
     }
+
+    const { prompt, model } = await loadPrompt();
 
     const userMsg = [
       `Cargo: ${cargoNome}`,
@@ -87,9 +88,9 @@ Deno.serve(async (req) => {
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
+        model,
         max_tokens: 600,
-        system: SYSTEM_PROMPT,
+        system: prompt,
         messages: [{ role: "user", content: userMsg }],
       }),
     });
@@ -102,7 +103,6 @@ Deno.serve(async (req) => {
     const aiData = await aiResp.json();
     const text = aiData?.content?.[0]?.text?.trim() || "";
 
-    // Extrai o JSON da resposta (caso venha com markdown ou texto extra)
     const match = text.match(/\{[\s\S]*\}/);
     const jsonStr = match ? match[0] : text;
     let parsed;
@@ -115,7 +115,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Valida e normaliza
     const VALID_EXPOSURES = ["Contínua/Permanente", "Intermitente", "Habitual", "Eventual/Ocasional", "Outra"];
     if (!VALID_EXPOSURES.includes(parsed.exposicao)) parsed.exposicao = "Habitual";
     parsed.severidade = String(parsed.severidade ?? "0");

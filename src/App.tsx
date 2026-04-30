@@ -24,6 +24,7 @@ import Setores from "./pages/Setores";
 import Relatorios from "./pages/Relatorios";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
+import PromptIA from "./pages/PromptIA";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -75,6 +76,7 @@ function ProtectedRoutes() {
         <Route path="/cargos" element={<Cargos />} />
         <Route path="/setores" element={<Setores />} />
         <Route path="/treinamentos" element={<Treinamentos />} />
+        <Route path="/prompt-ia" element={<PromptIA />} />
         <Route path="/configuracoes" element={<Settings />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<NotFound />} />

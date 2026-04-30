@@ -5,7 +5,7 @@ import {
   Shield, HardHat, GraduationCap, Settings, Menu, ChevronLeft,
   ChevronDown, FolderOpen, Stethoscope, UserCheck,
   FileText, Sun, Moon, ArrowLeft, X, PanelLeftClose, PanelLeft,
-  LogOut,
+  LogOut, Bot,
   LucideIcon,
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -28,6 +28,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   setores: Building2,
   epis: HardHat,
   treinamentos: GraduationCap,
+  prompt_ia: Bot,
   configuracoes: Settings,
 };
 
@@ -44,6 +45,7 @@ const ROUTE_MAP: Record<string, string> = {
   setores: '/setores',
   epis: '/epis',
   treinamentos: '/treinamentos',
+  prompt_ia: '/prompt-ia',
   configuracoes: '/configuracoes',
 };
 
@@ -97,9 +99,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
   const visibleItems = navItems.filter(i => i.visible).sort((a, b) => a.order - b.order);
-  const navWithoutConfig = visibleItems.filter(i => !CADASTRO_KEYS.includes(i.key) && i.key !== 'configuracoes');
+  const navWithoutConfig = visibleItems.filter(i =>
+    !CADASTRO_KEYS.includes(i.key) && i.key !== 'configuracoes' && i.key !== 'prompt_ia'
+  );
   const cadastroItems = visibleItems.filter(i => CADASTRO_KEYS.includes(i.key));
   const configItem = visibleItems.find(i => i.key === 'configuracoes');
+  const promptIaItem = visibleItems.find(i => i.key === 'prompt_ia');
 
   const isActive = (path: string) => path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
   const hasCadastroActive = cadastroItems.some(i => isActive(ROUTE_MAP[i.key] || '/'));
@@ -185,6 +190,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               )}
             </>
           )}
+
+          {/* Prompt da IA — sempre no fim da nav */}
+          {promptIaItem && renderNavItem(promptIaItem)}
         </nav>
 
         {/* ---- Footer ---- */}
