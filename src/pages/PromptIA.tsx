@@ -9,10 +9,18 @@ import { Sparkles, Save, RotateCcw, Bot, Eye, Code } from 'lucide-react';
 import { toast } from 'sonner';
 import { marked } from 'marked';
 
-const MODELS = [
-  { value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5 (rápido, barato)' },
-  { value: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6 (qualidade)' },
-  { value: 'claude-opus-4-7', label: 'Claude Opus 4.7 (top, mais caro)' },
+const MODELS: Array<{ group: string; value: string; label: string }> = [
+  // Anthropic
+  { group: 'Claude (Anthropic)', value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5 — rápido e barato' },
+  { group: 'Claude (Anthropic)', value: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6 — qualidade' },
+  { group: 'Claude (Anthropic)', value: 'claude-opus-4-7', label: 'Claude Opus 4.7 — top, mais caro' },
+  // OpenAI
+  { group: 'GPT (OpenAI)', value: 'gpt-5-nano', label: 'GPT-5 Nano — rápido e barato' },
+  { group: 'GPT (OpenAI)', value: 'gpt-5-mini', label: 'GPT-5 Mini — equilíbrio' },
+  { group: 'GPT (OpenAI)', value: 'gpt-5', label: 'GPT-5 — qualidade' },
+  { group: 'GPT (OpenAI)', value: 'gpt-4.1-mini', label: 'GPT-4.1 Mini — barato' },
+  { group: 'GPT (OpenAI)', value: 'gpt-4.1', label: 'GPT-4.1 — qualidade alta' },
+  { group: 'GPT (OpenAI)', value: 'gpt-4o', label: 'GPT-4o — multimodal' },
 ];
 
 const DEFAULT_RISK_AI = `Você é um especialista em segurança do trabalho (NR-01) que analisa riscos ocupacionais.
@@ -153,7 +161,13 @@ function PromptCard({ config, onSaved }: { config: AIConfig; onSaved: () => void
             value={model}
             onChange={e => setModel(e.target.value)}
           >
-            {MODELS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+            {Array.from(new Set(MODELS.map(m => m.group))).map(g => (
+              <optgroup key={g} label={g}>
+                {MODELS.filter(m => m.group === g).map(m => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </optgroup>
+            ))}
           </select>
         </div>
 
