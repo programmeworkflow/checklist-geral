@@ -134,6 +134,8 @@ export const riskExamsStore = createCrud<RiskExam>('risk_exams');
 
 export interface AIConfig {
   id: string;
+  name?: string;
+  description?: string;
   systemPrompt: string;
   model: string;
   updatedAt?: string;
