@@ -4,7 +4,7 @@ import {
   examsStore, safetyMeasuresStore, riskExamsStore, riskMeasuresStore,
 } from '@/lib/storage';
 import type { OccupationalExam, SafetyMeasure, RiskExam } from '@/lib/storage';
-import { Stethoscope, Shield, Plus, X, ChevronDown, Settings2 } from 'lucide-react';
+import { Stethoscope, Shield, Plus, X, ChevronDown, Settings2, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card } from '@/components/ui/card';
@@ -20,6 +20,16 @@ export function RiskAssociations({ riskId }: Props) {
   const [tab, setTab] = useState<'exames' | 'medidas'>('exames');
   const [picking, setPicking] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [pickerSearch, setPickerSearch] = useState('');
+
+  // Reseta search ao abrir/fechar picker ou trocar de tab
+  const openPicker = () => { setPickerSearch(''); setPicking(true); };
+  const closePicker = () => { setPicking(false); setPickerSearch(''); };
+
+  const matchSearch = (name: string) => {
+    if (!pickerSearch.trim()) return true;
+    return name.toLowerCase().includes(pickerSearch.toLowerCase());
+  };
 
   const { data: allExams = [] } = useQuery({ queryKey: ['exams'], queryFn: () => examsStore.getAll() });
   const { data: allMeasures = [] } = useQuery({ queryKey: ['safety_measures'], queryFn: () => safetyMeasuresStore.getAll() });
@@ -204,26 +214,42 @@ export function RiskAssociations({ riskId }: Props) {
           })}
 
           {!picking ? (
-            <Button size="sm" variant="outline" onClick={() => setPicking(true)} className="w-full gap-1.5 h-8 text-xs" disabled={unassociatedExams.length === 0}>
+            <Button size="sm" variant="outline" onClick={openPicker} className="w-full gap-1.5 h-8 text-xs" disabled={unassociatedExams.length === 0}>
               <Plus className="h-3.5 w-3.5" /> {unassociatedExams.length === 0 ? 'Todos exames já vinculados' : 'Vincular exame'}
             </Button>
           ) : (
-            <Card className="p-2 max-h-48 overflow-y-auto space-y-1 border-primary/30">
-              <div className="flex items-center justify-between px-1">
+            <Card className="p-2 border-primary/30">
+              <div className="flex items-center justify-between px-1 mb-2">
                 <p className="text-xs font-semibold text-foreground">Selecione um exame:</p>
-                <button onClick={() => setPicking(false)} className="text-muted-foreground hover:text-foreground">
+                <button onClick={closePicker} className="text-muted-foreground hover:text-foreground">
                   <X className="h-3.5 w-3.5" />
                 </button>
               </div>
-              {unassociatedExams.map(e => (
-                <button
-                  key={e.id}
-                  onClick={() => { linkExam(e.id); setPicking(false); }}
-                  className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-primary/10 transition-colors"
-                >
-                  {e.name}
-                </button>
-              ))}
+              <div className="relative mb-1.5">
+                <Search className="h-3.5 w-3.5 text-muted-foreground absolute left-2 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={pickerSearch}
+                  onChange={e => setPickerSearch(e.target.value)}
+                  placeholder="Buscar exame..."
+                  autoFocus
+                  className="w-full pl-7 pr-2 py-1.5 text-xs rounded border border-input bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <div className="max-h-48 overflow-y-auto space-y-0.5">
+                {unassociatedExams.filter(e => matchSearch(e.name)).map(e => (
+                  <button
+                    key={e.id}
+                    onClick={() => { linkExam(e.id); closePicker(); }}
+                    className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-primary/10 transition-colors"
+                  >
+                    {e.name}
+                  </button>
+                ))}
+                {unassociatedExams.filter(e => matchSearch(e.name)).length === 0 && (
+                  <p className="text-xs text-muted-foreground italic py-2 text-center">Nenhum exame encontrado.</p>
+                )}
+              </div>
             </Card>
           )}
         </div>
@@ -248,26 +274,42 @@ export function RiskAssociations({ riskId }: Props) {
           })}
 
           {!picking ? (
-            <Button size="sm" variant="outline" onClick={() => setPicking(true)} className="w-full gap-1.5 h-8 text-xs" disabled={unassociatedMeasures.length === 0}>
+            <Button size="sm" variant="outline" onClick={openPicker} className="w-full gap-1.5 h-8 text-xs" disabled={unassociatedMeasures.length === 0}>
               <Plus className="h-3.5 w-3.5" /> {unassociatedMeasures.length === 0 ? 'Todas medidas já vinculadas' : 'Vincular medida'}
             </Button>
           ) : (
-            <Card className="p-2 max-h-48 overflow-y-auto space-y-1 border-primary/30">
-              <div className="flex items-center justify-between px-1">
+            <Card className="p-2 border-primary/30">
+              <div className="flex items-center justify-between px-1 mb-2">
                 <p className="text-xs font-semibold text-foreground">Selecione uma medida:</p>
-                <button onClick={() => setPicking(false)} className="text-muted-foreground hover:text-foreground">
+                <button onClick={closePicker} className="text-muted-foreground hover:text-foreground">
                   <X className="h-3.5 w-3.5" />
                 </button>
               </div>
-              {unassociatedMeasures.map(m => (
-                <button
-                  key={m.id}
-                  onClick={() => { linkMeasure(m.id); setPicking(false); }}
-                  className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-primary/10 transition-colors"
-                >
-                  {m.name}
-                </button>
-              ))}
+              <div className="relative mb-1.5">
+                <Search className="h-3.5 w-3.5 text-muted-foreground absolute left-2 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={pickerSearch}
+                  onChange={e => setPickerSearch(e.target.value)}
+                  placeholder="Buscar medida..."
+                  autoFocus
+                  className="w-full pl-7 pr-2 py-1.5 text-xs rounded border border-input bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <div className="max-h-48 overflow-y-auto space-y-0.5">
+                {unassociatedMeasures.filter(m => matchSearch(m.name)).map(m => (
+                  <button
+                    key={m.id}
+                    onClick={() => { linkMeasure(m.id); closePicker(); }}
+                    className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-primary/10 transition-colors"
+                  >
+                    {m.name}
+                  </button>
+                ))}
+                {unassociatedMeasures.filter(m => matchSearch(m.name)).length === 0 && (
+                  <p className="text-xs text-muted-foreground italic py-2 text-center">Nenhuma medida encontrada.</p>
+                )}
+              </div>
             </Card>
           )}
         </div>
