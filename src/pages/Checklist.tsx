@@ -70,6 +70,38 @@ const Checklist = () => {
 
   // IA: gerar fonte/exposição/severidade/probabilidade a partir do cargo+atribuições+risco
   const [aiLoading, setAiLoading] = useState<Record<string, boolean>>({});
+  const [aiAtribuicoesLoading, setAiAtribuicoesLoading] = useState(false);
+
+  const handleGerarAtribuicoesComIA = async () => {
+    const fn = selectedFns[0];
+    if (!fn) {
+      toast.error('Nenhum cargo selecionado');
+      return;
+    }
+    const sec = allSectors.find(s => s.id === fn.sectorId);
+    const co = sec ? companies.find(c => c.id === sec.companyId) : null;
+    setAiAtribuicoesLoading(true);
+    try {
+      const text = await generateCargoDescription({
+        cargoNome: fn.name,
+        setor: sec?.name,
+        empresa: co?.name,
+      });
+      // Atualiza o campo do checklist E persiste no cargo
+      setFormData({ ...formData, atribuicoes: text });
+      try {
+        await functionsStore.update(fn.id, { description: text } as any);
+        qc.invalidateQueries({ queryKey: ['functions'] });
+      } catch {
+        // se falhar persistir, mantém só no formData (não bloqueia)
+      }
+      toast.success('Atribuições geradas pela IA');
+    } catch (err: any) {
+      toast.error(`IA: ${err?.message || 'falha'}`);
+    } finally {
+      setAiAtribuicoesLoading(false);
+    }
+  };
 
   const handleGerarComIA = async (riskId: string) => {
     const risk = risks.find(r => r.id === riskId);
@@ -1078,7 +1110,23 @@ const Checklist = () => {
             if (blockLower.includes('atribuições') || blockLower.includes('atribuicoes')) {
               return (
                 <Card key={block.id} className="p-4">
-                  <h2 className="bg-muted text-foreground px-3 py-2 rounded-md mb-3 font-semibold text-base">{block.name}</h2>
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <h2 className="bg-muted text-foreground px-3 py-2 rounded-md font-semibold text-base flex-1">{block.name}</h2>
+                    <button
+                      type="button"
+                      onClick={handleGerarAtribuicoesComIA}
+                      disabled={aiAtribuicoesLoading}
+                      className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider px-2.5 py-2 rounded-md border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-50 shrink-0"
+                    >
+                      {aiAtribuicoesLoading ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" /> Gerando…
+                        </span>
+                      ) : (
+                        <>✨ Gerar com IA</>
+                      )}
+                    </button>
+                  </div>
                   <SpeechInput placeholder="Descreva as atribuições..." value={formData.atribuicoes || ''}
                     onChange={val => setFormData({ ...formData, atribuicoes: val })} multiline rows={3} />
                 </Card>
