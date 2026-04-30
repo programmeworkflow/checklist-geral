@@ -27,6 +27,7 @@ import { FileSpreadsheet, FileDown } from 'lucide-react';
 import { SignaturePad } from '@/components/SignaturePad';
 import { useAuth } from '@/hooks/useAuth';
 import { sortByNameOutrosLast } from '@/lib/sortRisks';
+import { generateRiskFieldsWithAI } from '@/lib/aiRiskAnalyzer';
 
 type Step = 'select' | 'fill';
 type MeasureStatus = 0 | 1 | 2 | 3;
@@ -66,6 +67,45 @@ const Checklist = () => {
 
   // Action plan custom measures
   const [customActions, setCustomActions] = useState<string[]>([]);
+
+  // IA: gerar fonte/exposição/severidade/probabilidade a partir do cargo+atribuições+risco
+  const [aiLoading, setAiLoading] = useState<Record<string, boolean>>({});
+
+  const handleGerarComIA = async (riskId: string) => {
+    const risk = risks.find(r => r.id === riskId);
+    if (!risk) return;
+    // Pega o primeiro cargo selecionado e suas atribuições
+    const fn = selectedFns[0];
+    if (!fn) {
+      toast.error('Nenhum cargo selecionado');
+      return;
+    }
+    const atribuicoes = (fn.description || '').trim();
+    if (!atribuicoes) {
+      toast.error(`Cargo "${fn.name}" não tem atribuições cadastradas`);
+      return;
+    }
+    const cat = riskCategories.find(c => c.id === risk.categoryId);
+    setAiLoading(prev => ({ ...prev, [riskId]: true }));
+    try {
+      const out = await generateRiskFieldsWithAI({
+        cargoNome: fn.name,
+        cargoAtribuicoes: atribuicoes,
+        riscoNome: risk.name,
+        riscoCategoria: cat?.name,
+      });
+      setRiskSources(prev => ({ ...prev, [riskId]: out.fonte }));
+      setRiskExposures(prev => ({ ...prev, [riskId]: out.exposicao }));
+      setRiskSeverity(prev => ({ ...prev, [riskId]: out.severidade }));
+      setRiskProbability(prev => ({ ...prev, [riskId]: out.probabilidade }));
+      toast.success('Campos preenchidos pela IA');
+    } catch (err: any) {
+      console.error('IA error:', err);
+      toast.error(`IA: ${err?.message || 'falha desconhecida'}`);
+    } finally {
+      setAiLoading(prev => ({ ...prev, [riskId]: false }));
+    }
+  };
 
   // Show report section
   const [showReport, setShowReport] = useState(false);
@@ -792,18 +832,6 @@ const Checklist = () => {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-base font-medium text-muted-foreground flex items-center gap-1.5">
-                        Severidade <SeverityHelp />
-                      </label>
-                      <select
-                        className="w-full mt-1 rounded-md border border-input bg-background px-3 py-3 text-base"
-                        value={riskSeverity[riskId] || '0'}
-                        onChange={e => setRiskSeverity({ ...riskSeverity, [riskId]: e.target.value })}
-                      >
-                        {SEVERITY_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-base font-medium text-muted-foreground flex items-center gap-1.5">
                         Probabilidade <ProbabilityHelp riskCategoryType={riskCat?.type} />
                       </label>
                       <select
@@ -812,6 +840,18 @@ const Checklist = () => {
                         onChange={e => setRiskProbability({ ...riskProbability, [riskId]: e.target.value })}
                       >
                         {PROBABILITY_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-base font-medium text-muted-foreground flex items-center gap-1.5">
+                        Severidade <SeverityHelp />
+                      </label>
+                      <select
+                        className="w-full mt-1 rounded-md border border-input bg-background px-3 py-3 text-base"
+                        value={riskSeverity[riskId] || '0'}
+                        onChange={e => setRiskSeverity({ ...riskSeverity, [riskId]: e.target.value })}
+                      >
+                        {SEVERITY_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                       </select>
                     </div>
                   </div>
@@ -1093,9 +1133,25 @@ const Checklist = () => {
                                           </p>
                                         )}
                                         <div>
-                                          <label className="text-base font-medium text-muted-foreground">
-                                            Fonte geradora do risco <span className="text-destructive">*</span>
-                                          </label>
+                                          <div className="flex items-center justify-between gap-2">
+                                            <label className="text-base font-medium text-muted-foreground">
+                                              Fonte geradora do risco <span className="text-destructive">*</span>
+                                            </label>
+                                            <button
+                                              type="button"
+                                              onClick={() => handleGerarComIA(risk.id)}
+                                              disabled={aiLoading[risk.id]}
+                                              className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-50"
+                                            >
+                                              {aiLoading[risk.id] ? (
+                                                <span className="inline-flex items-center gap-1.5">
+                                                  <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" /> Gerando…
+                                                </span>
+                                              ) : (
+                                                <>✨ Gerar com IA</>
+                                              )}
+                                            </button>
+                                          </div>
                                           <SpeechInput
                                             value={riskSources[risk.id] || ''}
                                             onChange={val => setRiskSources(prev => ({ ...prev, [risk.id]: val }))}
@@ -1132,18 +1188,6 @@ const Checklist = () => {
                                         <div className="grid grid-cols-2 gap-3">
                                           <div>
                                             <label className="text-base font-medium text-muted-foreground flex items-center gap-1.5">
-                                              Severidade <SeverityHelp />
-                                            </label>
-                                            <select
-                                              className="w-full mt-1 rounded-md border border-input bg-background px-3 py-3 text-base"
-                                              value={riskSeverity[risk.id] || '0'}
-                                              onChange={e => setRiskSeverity({ ...riskSeverity, [risk.id]: e.target.value })}
-                                            >
-                                              {SEVERITY_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                                            </select>
-                                          </div>
-                                          <div>
-                                            <label className="text-base font-medium text-muted-foreground flex items-center gap-1.5">
                                               Probabilidade <ProbabilityHelp riskCategoryType={riskCat?.type} />
                                             </label>
                                             <select
@@ -1152,6 +1196,18 @@ const Checklist = () => {
                                               onChange={e => setRiskProbability({ ...riskProbability, [risk.id]: e.target.value })}
                                             >
                                               {PROBABILITY_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                                            </select>
+                                          </div>
+                                          <div>
+                                            <label className="text-base font-medium text-muted-foreground flex items-center gap-1.5">
+                                              Severidade <SeverityHelp />
+                                            </label>
+                                            <select
+                                              className="w-full mt-1 rounded-md border border-input bg-background px-3 py-3 text-base"
+                                              value={riskSeverity[risk.id] || '0'}
+                                              onChange={e => setRiskSeverity({ ...riskSeverity, [risk.id]: e.target.value })}
+                                            >
+                                              {SEVERITY_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                                             </select>
                                           </div>
                                         </div>
