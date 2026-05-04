@@ -672,25 +672,41 @@ const Checklist = () => {
       const cargos = selectedFns.map(fn => {
         const riscos = selectedRiskIds.map(rid => {
           const r = risks.find(x => x.id === rid);
-          // medidas vinculadas a este risco específico
+          const riscoNome = (r?.customFields as any)?.esoName || r?.name || '';
+          // medidas vinculadas a este risco — separadas por categoria:
+          // - category 'epi' → colunas K/L (EPIs)
+          // - category 'geral' (ou indefinida) → colunas M/N (Medidas)
           const measuresOfRisk = getMeasuresForRisk(rid);
+          const isEpi = (m: typeof measuresOfRisk[number]) => m.category === 'epi';
+
+          const epiMeasuresExist = measuresOfRisk
+            .filter(m => isEpi(m) && measureStatuses[m.id] === 1)
+            .map(m => m.name);
+          const epiMeasuresImpl = measuresOfRisk
+            .filter(m => isEpi(m) && measureStatuses[m.id] === 2)
+            .map(m => m.name);
           const medidasExistentes = measuresOfRisk
-            .filter(m => measureStatuses[m.id] === 1)
+            .filter(m => !isEpi(m) && measureStatuses[m.id] === 1)
             .map(m => m.name);
           const medidasAImplementar = measuresOfRisk
-            .filter(m => measureStatuses[m.id] === 2)
+            .filter(m => !isEpi(m) && measureStatuses[m.id] === 2)
             .map(m => m.name);
 
+          // Junta EPIs do bloco "Aplicação dos EPIs" (globais por checklist) com
+          // os EPIs que vieram como medida vinculada a este risco específico
+          const episExistentes = Array.from(new Set([...episExistentesGlobal, ...epiMeasuresExist]));
+          const episAImplementar = Array.from(new Set([...episAImplementarGlobal, ...epiMeasuresImpl]));
+
           return {
-            riscoNome: r?.name || '',
+            riscoNome,
             fonteGeradora: riskSources[rid] || '',
             tipoExposicao: riskExposures[rid] === 'Outra'
               ? (riskExposureOther[rid] || 'Outra')
               : (riskExposures[rid] || ''),
             probabilidade: probLabel(riskProbability[rid]),
             severidade: sevLabel(riskSeverity[rid]),
-            episExistentes: episExistentesGlobal,
-            episAImplementar: episAImplementarGlobal,
+            episExistentes,
+            episAImplementar,
             medidasExistentes,
             medidasAImplementar,
           };
@@ -838,10 +854,12 @@ const Checklist = () => {
                       Fonte geradora do risco <span className="text-destructive">*</span>
                     </label>
                     <SpeechInput
+                      multiline
+                      rows={2}
                       value={riskSources[riskId] || ''}
                       onChange={val => setRiskSources(prev => ({ ...prev, [riskId]: val }))}
                       placeholder="Descreva a fonte geradora..."
-                      className={`mt-1 ${!riskSources[riskId]?.trim() ? 'border-destructive' : ''}`}
+                      className={`mt-1 resize-y ${!riskSources[riskId]?.trim() ? 'border-destructive' : ''}`}
                     />
                   </div>
 
@@ -1225,10 +1243,12 @@ const Checklist = () => {
                                             </button>
                                           </div>
                                           <SpeechInput
+                                            multiline
+                                            rows={2}
                                             value={riskSources[risk.id] || ''}
                                             onChange={val => setRiskSources(prev => ({ ...prev, [risk.id]: val }))}
                                             placeholder="Descreva a fonte geradora..."
-                                            className={`mt-1 ${!riskSources[risk.id]?.trim() ? 'border-destructive' : ''}`}
+                                            className={`mt-1 resize-y ${!riskSources[risk.id]?.trim() ? 'border-destructive' : ''}`}
                                           />
                                         </div>
                                         <div>

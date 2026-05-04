@@ -79,14 +79,19 @@ export function ExcelImport({ companyId, companyName, onComplete }: ExcelImportP
       let ambientesCreated = 0;
       let functionsCreated = 0;
       const sectorMap = new Map<string, string>();
+      // chave: `${sectorId}::${cargoNomeLower}` — atualizada em tempo real
+      // pra deduplicar tanto contra DB quanto contra cargos criados nesta importação
+      const functionKeys = new Set<string>();
 
-      // Map existing sectors for this company
       existingSectors
         .filter(s => s.companyId === companyId)
         .forEach(s => sectorMap.set(s.name.toLowerCase(), s.id));
 
+      existingFunctions.forEach(f => {
+        functionKeys.add(`${f.sectorId}::${f.name.toLowerCase()}`);
+      });
+
       for (const r of validRows) {
-        // Get or create sector
         let sectorId = sectorMap.get(r.setor.toLowerCase());
         if (!sectorId) {
           const newSector = await sectorsStore.add({ name: r.setor, companyId } as any);
@@ -95,12 +100,10 @@ export function ExcelImport({ companyId, companyName, onComplete }: ExcelImportP
           ambientesCreated++;
         }
 
-        // Check duplicate function
-        const exists = existingFunctions.some(
-          f => f.sectorId === sectorId && f.name.toLowerCase() === r.cargo.toLowerCase()
-        );
-        if (!exists) {
+        const fkey = `${sectorId}::${r.cargo.toLowerCase()}`;
+        if (!functionKeys.has(fkey)) {
           await functionsStore.add({ name: r.cargo, sectorId } as any);
+          functionKeys.add(fkey);
           functionsCreated++;
         }
       }

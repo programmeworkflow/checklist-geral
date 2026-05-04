@@ -78,6 +78,9 @@ export function ChecklistReport(props: ReportProps) {
   // Helpers com fallback ao filter direto (retrocompat)
   const measuresOf = (riskId: string) => gM ? gM(riskId) : allMeasures.filter(m => m.riskId === riskId);
   const examsOf = (riskId: string) => gE ? gE(riskId) : allExams.filter(e => e.riskId === riskId);
+  // Nome do risco que aparece no PDF: prioriza o nome do ESO se cadastrado
+  const displayRiskName = (r: Risk | undefined): string =>
+    (r ? ((r.customFields as any)?.esoName || r.name) : '');
 
   const conformities: { risk: Risk; measure: SafetyMeasure }[] = [];
   const nonConformities: { risk: Risk; measure: SafetyMeasure; note: string }[] = [];
@@ -222,7 +225,7 @@ export function ChecklistReport(props: ReportProps) {
             return (
               <div key={rId} className="border border-gray-200 rounded-lg overflow-hidden">
                 <div className={`px-4 py-2 ${colors ? `${colors.bg} ${colors.text}` : 'bg-gray-100 text-gray-700'}`}>
-                  <span className="font-bold text-[12px]">{risk.name}</span>
+                  <span className="font-bold text-[12px]">{displayRiskName(risk)}</span>
                   {cat && <span className="ml-2 text-[10px] opacity-70">({cat.name})</span>}
                 </div>
                 <div className="px-4 py-2.5 space-y-1 text-[11px] bg-white">
@@ -258,7 +261,7 @@ export function ChecklistReport(props: ReportProps) {
             <div key={measure.id} className="flex items-center gap-2 py-1.5 px-3 rounded-md bg-green-50 border border-green-200">
               <span className="text-[10px] font-bold text-green-700 bg-green-100 px-1.5 py-0.5 rounded">EXISTENTE</span>
               <span className="text-[12px] text-gray-800 font-medium">{measure.name}</span>
-              <span className="text-[10px] text-gray-400">({risk.name})</span>
+              <span className="text-[10px] text-gray-400">({displayRiskName(risk)})</span>
             </div>
           ))}
         </div>
@@ -284,7 +287,7 @@ export function ChecklistReport(props: ReportProps) {
               <div className="px-3 py-2 bg-red-50 flex items-center gap-2 flex-wrap">
                 <span className="text-[10px] font-bold text-red-700 bg-red-100 px-1.5 py-0.5 rounded">NÃO EXISTENTE</span>
                 <span className="text-[12px] text-gray-800 font-medium">{measure.name}</span>
-                <span className="text-[10px] text-gray-400">({risk.name})</span>
+                <span className="text-[10px] text-gray-400">({displayRiskName(risk)})</span>
               </div>
               {note && <p className="px-3 py-1.5 text-[11px] text-gray-600 bg-white border-t border-red-100">Obs: {note}</p>}
               <div className="px-3 py-1.5 bg-amber-50 border-t border-amber-200 text-[11px] text-amber-800 font-medium">
@@ -319,7 +322,7 @@ export function ChecklistReport(props: ReportProps) {
           <div key={measure.id} className="flex items-center gap-2 py-1.5 px-3 rounded-md bg-amber-50 border border-amber-200">
             <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">N/A</span>
             <span className="text-[12px] text-gray-800">{measure.name}</span>
-            <span className="text-[10px] text-gray-400">({risk.name})</span>
+            <span className="text-[10px] text-gray-400">({displayRiskName(risk)})</span>
           </div>
         ))}
       </div>

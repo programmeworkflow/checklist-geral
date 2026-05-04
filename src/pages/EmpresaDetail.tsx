@@ -63,6 +63,8 @@ export default function EmpresaDetail() {
   const [newFunctionName, setNewFunctionName] = useState('');
   const [editingFunction, setEditingFunction] = useState<string | null>(null);
   const [editFunctionName, setEditFunctionName] = useState('');
+  const [savingFunction, setSavingFunction] = useState(false);
+  const [savingSector, setSavingSector] = useState(false);
 
   if (!company) {
     return (
@@ -75,12 +77,24 @@ export default function EmpresaDetail() {
     );
   }
 
-  const handleAddSector = () => {
-    if (!newSectorName.trim()) return;
-    sectors.add({ companyId: id!, name: newSectorName.trim() } as any);
-    setNewSectorName('');
-    setAddingSector(false);
-    toast.success('Setor adicionado');
+  const handleAddSector = async () => {
+    if (savingSector) return;
+    const name = newSectorName.trim();
+    if (!name) return;
+    // Evita duplicado por nome no mesmo cliente (case-insensitive)
+    if (companySectors.some(s => s.name.toLowerCase() === name.toLowerCase())) {
+      toast.error('Já existe um setor com esse nome');
+      return;
+    }
+    setSavingSector(true);
+    try {
+      await sectors.add({ companyId: id!, name } as any);
+      setNewSectorName('');
+      setAddingSector(false);
+      toast.success('Setor adicionado');
+    } finally {
+      setSavingSector(false);
+    }
   };
 
   const handleUpdateSector = (sectorId: string) => {
@@ -96,12 +110,27 @@ export default function EmpresaDetail() {
     toast.success('Setor removido');
   };
 
-  const handleAddFunction = (sectorId: string) => {
-    if (!newFunctionName.trim()) return;
-    functions.add({ sectorId, name: newFunctionName.trim() } as any);
-    setNewFunctionName('');
-    setAddingFunctionFor(null);
-    toast.success('Cargo adicionado');
+  const handleAddFunction = async (sectorId: string) => {
+    if (savingFunction) return;
+    const name = newFunctionName.trim();
+    if (!name) return;
+    // Evita duplicado dentro do mesmo setor
+    const exists = functions.items.some(
+      f => f.sectorId === sectorId && f.name.toLowerCase() === name.toLowerCase()
+    );
+    if (exists) {
+      toast.error('Já existe um cargo com esse nome neste setor');
+      return;
+    }
+    setSavingFunction(true);
+    try {
+      await functions.add({ sectorId, name } as any);
+      setNewFunctionName('');
+      setAddingFunctionFor(null);
+      toast.success('Cargo adicionado');
+    } finally {
+      setSavingFunction(false);
+    }
   };
 
   const handleUpdateFunction = (funcId: string) => {
@@ -240,7 +269,9 @@ export default function EmpresaDetail() {
               onKeyDown={e => e.key === 'Enter' && handleAddSector()}
               autoFocus
             />
-            <Button size="sm" onClick={handleAddSector}>Salvar</Button>
+            <Button size="sm" onClick={handleAddSector} disabled={savingSector}>
+              {savingSector ? 'Salvando…' : 'Salvar'}
+            </Button>
             <Button size="sm" variant="ghost" onClick={() => { setAddingSector(false); setNewSectorName(''); }}>
               Cancelar
             </Button>
@@ -400,7 +431,9 @@ export default function EmpresaDetail() {
                           autoFocus
                           className="h-8 text-sm"
                         />
-                        <Button size="sm" className="h-8" onClick={() => handleAddFunction(sector.id)}>Salvar</Button>
+                        <Button size="sm" className="h-8" onClick={() => handleAddFunction(sector.id)} disabled={savingFunction}>
+                          {savingFunction ? '…' : 'Salvar'}
+                        </Button>
                         <Button size="sm" variant="ghost" className="h-8" onClick={() => { setAddingFunctionFor(null); setNewFunctionName(''); }}>
                           Cancelar
                         </Button>

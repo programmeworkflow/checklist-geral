@@ -15,29 +15,53 @@ export async function exportReportToPdf(element: HTMLElement, filename = 'relato
   if (isDark) document.documentElement.classList.remove('dark');
   await new Promise(r => setTimeout(r, 150));
 
-  // Find all section-level children marked with data-pdf-section
-  const sections = element.querySelectorAll('[data-pdf-section]');
-  const elements = sections.length > 0 ? Array.from(sections) as HTMLElement[] : [element];
-
-  // Capture each section separately.
-  // windowWidth grande = mais conteúdo por mm no PDF = fontes menores no arquivo final.
-  // O elemento renderiza em viewport virtual de 1100px, que depois é encaixado
-  // em 190mm (CONTENT_W). Assim a tela permanece nas fontes originais (grandes),
-  // mas o PDF baixado fica compacto.
+  // Forçar largura fixa de captura — em tablets/celulares a viewport real
+  // é menor que 1100px e o html2canvas captura o tamanho EFETIVO do nó no
+  // momento. Pra garantir layout idêntico em qualquer dispositivo, montamos
+  // um stage offscreen com largura fixa, clonamos o relatório dentro dele,
+  // e capturamos a partir do clone. No final removemos o stage.
   const PDF_CAPTURE_WIDTH = 1100;
-  const captures: { canvas: HTMLCanvasElement; title: string }[] = [];
-  for (const el of elements) {
-    const canvas = await html2canvas(el, {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#ffffff',
-      windowWidth: PDF_CAPTURE_WIDTH,
-    });
-    captures.push({ canvas, title: el.getAttribute('data-pdf-section') || '' });
-  }
 
-  if (isDark) document.documentElement.classList.add('dark');
+  const stage = document.createElement('div');
+  stage.style.position = 'fixed';
+  stage.style.top = '0';
+  stage.style.left = '-99999px';
+  stage.style.width = `${PDF_CAPTURE_WIDTH}px`;
+  stage.style.pointerEvents = 'none';
+  stage.style.background = '#ffffff';
+  stage.style.zIndex = '-1';
+
+  const cloneRoot = element.cloneNode(true) as HTMLElement;
+  cloneRoot.style.width = `${PDF_CAPTURE_WIDTH}px`;
+  cloneRoot.style.maxWidth = `${PDF_CAPTURE_WIDTH}px`;
+  cloneRoot.style.margin = '0';
+  stage.appendChild(cloneRoot);
+  document.body.appendChild(stage);
+
+  // Espera 1 frame pra layout/fontes/imagens reflowar com a nova largura
+  await new Promise(r => requestAnimationFrame(() => r(null)));
+  await new Promise(r => setTimeout(r, 100));
+
+  const sections = cloneRoot.querySelectorAll('[data-pdf-section]');
+  const elements = sections.length > 0 ? Array.from(sections) as HTMLElement[] : [cloneRoot];
+
+  const captures: { canvas: HTMLCanvasElement; title: string }[] = [];
+  try {
+    for (const el of elements) {
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        windowWidth: PDF_CAPTURE_WIDTH,
+        width: PDF_CAPTURE_WIDTH,
+      });
+      captures.push({ canvas, title: el.getAttribute('data-pdf-section') || '' });
+    }
+  } finally {
+    document.body.removeChild(stage);
+    if (isDark) document.documentElement.classList.add('dark');
+  }
 
   const pdf = new jsPDF('p', 'mm', 'a4');
   let currentY = MARGIN;

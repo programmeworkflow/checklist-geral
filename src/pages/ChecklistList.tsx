@@ -1,7 +1,8 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Copy, ClipboardList, Trash2, FileText, Pencil, Building2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Plus, Copy, ClipboardList, Trash2, FileText, Pencil, Building2, CheckSquare, Square } from 'lucide-react';
 import { checklistsStore, companiesStore, sectorsStore, functionsStore } from '@/lib/storage';
 import { toast } from 'sonner';
 import { useState, useMemo } from 'react';
@@ -28,11 +29,57 @@ export default function ChecklistList() {
   const [duplicateId, setDuplicateId] = useState<string | null>(null);
   const [dupCompanyId, setDupCompanyId] = useState('');
 
+  // Bulk selection
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
   const handleDelete = (id: string) => {
     if (!window.confirm('Excluir este checklist?')) return;
     removeMut.mutate(id, {
       onSuccess: () => toast.success('Checklist excluído.'),
     });
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSelectAll = (visibleIds: string[]) => {
+    const allSelected = visibleIds.length > 0 && visibleIds.every(id => selected.has(id));
+    if (allSelected) {
+      setSelected(prev => {
+        const next = new Set(prev);
+        visibleIds.forEach(id => next.delete(id));
+        return next;
+      });
+    } else {
+      setSelected(prev => {
+        const next = new Set(prev);
+        visibleIds.forEach(id => next.add(id));
+        return next;
+      });
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selected.size === 0) return;
+    if (!window.confirm(`Excluir ${selected.size} checklist(s)? Esta ação não pode ser desfeita.`)) return;
+    setBulkDeleting(true);
+    try {
+      const ids = Array.from(selected);
+      await Promise.all(ids.map(id => checklistsStore.remove(id)));
+      qc.invalidateQueries({ queryKey: ['checklists'] });
+      toast.success(`${ids.length} checklist(s) excluído(s).`);
+      setSelected(new Set());
+    } catch (err: any) {
+      toast.error(`Erro ao excluir: ${err?.message || 'desconhecido'}`);
+    } finally {
+      setBulkDeleting(false);
+    }
   };
 
   const handleDuplicate = async () => {
@@ -70,19 +117,44 @@ export default function ChecklistList() {
     }));
   }, [checklists, companies, search, sectors, fns]);
 
+  const allVisibleIds = grouped.flatMap(g => g.items.map(i => i.id));
+  const allVisibleSelected = allVisibleIds.length > 0 && allVisibleIds.every(id => selected.has(id));
+
   return (
     <div className="p-4 md:p-6 max-w-3xl mx-auto space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
           <ClipboardList className="h-6 w-6" /> Checklists
         </h1>
-        <Link to="/checklist">
-          <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Novo</Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          {selected.size > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              disabled={bulkDeleting}
+              className="inline-flex items-center gap-1.5 bg-destructive text-destructive-foreground px-3 h-9 rounded-xl text-sm font-semibold hover:bg-destructive/90 transition-colors disabled:opacity-60"
+            >
+              <Trash2 className="h-4 w-4" /> {bulkDeleting ? 'Excluindo…' : `Excluir ${selected.size}`}
+            </button>
+          )}
+          <Link to="/checklist">
+            <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Novo</Button>
+          </Link>
+        </div>
       </div>
 
       {checklists.length > 0 && (
-        <SearchInput value={search} onChange={setSearch} placeholder="Buscar por empresa, setor ou função..." />
+        <>
+          <SearchInput value={search} onChange={setSearch} placeholder="Buscar por empresa, setor ou função..." />
+          {allVisibleIds.length > 0 && (
+            <button
+              onClick={() => handleSelectAll(allVisibleIds)}
+              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+            >
+              {allVisibleSelected ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
+              {selected.size > 0 ? `${selected.size} selecionado(s)` : 'Selecionar todos'}
+            </button>
+          )}
+        </>
       )}
 
       {checklists.length === 0 ? (
@@ -102,16 +174,23 @@ export default function ChecklistList() {
               <div className="space-y-2">
                 {items.map(cl => {
                   const sector = sectors.find(s => s.id === cl.sectorId);
+                  const isSel = selected.has(cl.id);
                   return (
                     <Card
                       key={cl.id}
-                      className="p-3 flex items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors"
+                      className={`p-3 flex items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors ${isSel ? 'ring-2 ring-primary/40 bg-primary/[0.03]' : ''}`}
                       onClick={() => navigate(`/checklist/${cl.id}`)}
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <Checkbox
+                          checked={isSel}
+                          onCheckedChange={() => toggleSelect(cl.id)}
+                          onClick={e => e.stopPropagation()}
+                          className="shrink-0"
+                        />
                         <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <div>
-                          <p className="font-medium text-foreground text-sm">{sector?.name || 'Setor removido'}</p>
+                        <div className="min-w-0">
+                          <p className="font-medium text-foreground text-sm truncate">{sector?.name || 'Setor removido'}</p>
                           <p className="text-xs text-muted-foreground">
                             {new Date(cl.createdAt).toLocaleDateString('pt-BR')}
                             {cl.functionIds?.length > 0 && ` · ${cl.functionIds.length} função(ões)`}

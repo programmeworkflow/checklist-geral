@@ -98,22 +98,51 @@ export default function Riscos() {
         items={sortedRisks}
         selectable
         fields={[
-          { key: 'name', label: 'Nome do risco' },
+          { key: 'name', label: 'Nome do risco', placeholder: 'Ex: Acesso a espaços confinados' },
+          {
+            key: 'esoName',
+            label: 'Nome no ESO',
+            nested: 'customFields',
+            placeholder: 'Como esse risco aparece no ESO (opcional)',
+            helpText: 'Se preenchido, este é o nome que sai no PDF e na planilha.',
+          },
           { key: 'categoryId', label: 'Categoria', type: 'select', options: categoryOptions, hidden: true },
         ]}
         onAdd={(data) => {
-          risks.add({ ...data, customFields: {}, source: '', exposureType: '' });
+          const { name, categoryId, customFields = {}, ...rest } = data;
+          risks.add({
+            name,
+            categoryId,
+            customFields: { ...customFields },
+            source: '',
+            exposureType: '',
+            ...rest,
+          });
         }}
-        onUpdate={risks.update}
+        onUpdate={(id, data) => {
+          const existing = risks.items.find(r => r.id === id);
+          const merged = data.customFields
+            ? { ...data, customFields: { ...(existing?.customFields || {}), ...data.customFields } }
+            : data;
+          risks.update(id, merged);
+        }}
         onDelete={(id) => {
           // M-N tables têm ON DELETE CASCADE, basta remover o risco
           risks.remove(id);
         }}
         renderExtra={(item) => {
           const cat = riskCategories.items.find(c => c.id === item.categoryId);
+          const esoName = (item.customFields as any)?.esoName;
           return (
             <div className="mt-1">
-              {cat && <RiskBadge type={cat.type} label={cat.name} />}
+              <div className="flex items-center gap-2 flex-wrap">
+                {cat && <RiskBadge type={cat.type} label={cat.name} />}
+                {esoName && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 border border-blue-200">
+                    ESO: {esoName}
+                  </span>
+                )}
+              </div>
               <RiskAssociations riskId={item.id} />
             </div>
           );

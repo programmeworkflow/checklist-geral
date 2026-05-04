@@ -12,6 +12,10 @@ interface Field {
   type?: 'text' | 'textarea' | 'select';
   options?: { value: string; label: string }[];
   hidden?: boolean;
+  /** Se setado, lê/escreve o valor em obj[nested][key] em vez de obj[key] */
+  nested?: string;
+  placeholder?: string;
+  helpText?: string;
 }
 
 interface CrudListProps<T extends { id: string }> {
@@ -47,15 +51,37 @@ export function CrudList<T extends { id: string }>({
     setEditing(null);
   };
 
+  const readField = (item: T, f: Field): string => {
+    const raw = f.nested
+      ? (item as any)[f.nested]?.[f.key]
+      : (item as any)[f.key];
+    return raw == null ? '' : String(raw);
+  };
+
+  const buildPayload = (): any => {
+    const payload: any = {};
+    for (const f of fields) {
+      const v = form[f.key] ?? '';
+      if (f.nested) {
+        if (!payload[f.nested]) payload[f.nested] = {};
+        payload[f.nested][f.key] = v;
+      } else {
+        payload[f.key] = v;
+      }
+    }
+    return payload;
+  };
+
   const startEdit = (item: T) => {
-    setForm(Object.fromEntries(fields.map(f => [f.key, (item as any)[f.key] || ''])));
+    setForm(Object.fromEntries(fields.map(f => [f.key, readField(item, f)])));
     setEditing(item.id);
     setAdding(false);
   };
 
   const save = () => {
-    if (editing) onUpdate(editing, form);
-    else onAdd(form);
+    const payload = buildPayload();
+    if (editing) onUpdate(editing, payload);
+    else onAdd(payload);
     resetForm();
   };
 
@@ -94,7 +120,7 @@ export function CrudList<T extends { id: string }>({
     <Card className={compact
       ? "p-3 space-y-2 border-primary/30 bg-primary/[0.02]"
       : "p-5 space-y-4 border-primary/20 bg-gradient-to-br from-primary/[0.03] to-transparent shadow-sm"}>
-      {fields.map(f => (
+      {fields.map((f, idx) => (
         <div key={f.key}>
           {!compact && <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">{f.label}</label>}
           {f.type === 'select' ? (
@@ -111,9 +137,9 @@ export function CrudList<T extends { id: string }>({
               className="w-full min-h-[60px] rounded-lg"
               value={form[f.key] || ''}
               onChange={e => setForm({ ...form, [f.key]: e.target.value })}
-              placeholder={f.label}
+              placeholder={f.placeholder || f.label}
               rows={2}
-              autoFocus={!compact}
+              autoFocus={!compact && idx === 0}
             />
           ) : (
             <Input
@@ -124,9 +150,12 @@ export function CrudList<T extends { id: string }>({
                 if (e.key === 'Enter') save();
                 if (e.key === 'Escape') resetForm();
               }}
-              placeholder={f.label}
-              autoFocus={!compact}
+              placeholder={f.placeholder || f.label}
+              autoFocus={!compact && idx === 0}
             />
+          )}
+          {f.helpText && (
+            <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">{f.helpText}</p>
           )}
         </div>
       ))}
@@ -190,13 +219,13 @@ export function CrudList<T extends { id: string }>({
           if (editing === item.id) return <div key={item.id}>{renderForm(true)}</div>;
 
           const displayFields = visibleFields.map(f => {
-            const raw = (item as any)[f.key];
+            const raw = readField(item, f);
             if (!raw) return { key: f.key, label: f.label, value: '' };
             if (f.type === 'select' && f.options) {
               const opt = f.options.find(o => o.value === raw);
               return { key: f.key, label: f.label, value: opt?.label || '' };
             }
-            return { key: f.key, label: f.label, value: String(raw) };
+            return { key: f.key, label: f.label, value: raw };
           });
 
           const isSelected = selected.has(item.id);
