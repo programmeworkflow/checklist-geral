@@ -673,9 +673,10 @@ const Checklist = () => {
         const riscos = selectedRiskIds.map(rid => {
           const r = risks.find(x => x.id === rid);
           const riscoNome = (r?.customFields as any)?.esoName || r?.name || '';
-          // medidas vinculadas a este risco — separadas por categoria:
-          // - category 'epi' → colunas K/L (EPIs)
-          // - category 'geral' (ou indefinida) → colunas M/N (Medidas)
+          // Regra:
+          // - Colunas K/L (EPIs)   → SÓ itens marcados como EPI (category='epi') + EPIs do bloco global
+          // - Colunas M/N (Medidas) → TUDO que existe/falta: medidas gerais + EPIs + EPIs globais
+          //   (todo EPI conta como medida, mas nem toda medida é EPI)
           const measuresOfRisk = getMeasuresForRisk(rid);
           const isEpi = (m: typeof measuresOfRisk[number]) => m.category === 'epi';
 
@@ -685,17 +686,28 @@ const Checklist = () => {
           const epiMeasuresImpl = measuresOfRisk
             .filter(m => isEpi(m) && measureStatuses[m.id] === 2)
             .map(m => m.name);
-          const medidasExistentes = measuresOfRisk
+          const generalMeasuresExist = measuresOfRisk
             .filter(m => !isEpi(m) && measureStatuses[m.id] === 1)
             .map(m => m.name);
-          const medidasAImplementar = measuresOfRisk
+          const generalMeasuresImpl = measuresOfRisk
             .filter(m => !isEpi(m) && measureStatuses[m.id] === 2)
             .map(m => m.name);
 
-          // Junta EPIs do bloco "Aplicação dos EPIs" (globais por checklist) com
-          // os EPIs que vieram como medida vinculada a este risco específico
+          // EPIs (K/L): EPIs do bloco global ⋃ medidas-EPI
           const episExistentes = Array.from(new Set([...episExistentesGlobal, ...epiMeasuresExist]));
           const episAImplementar = Array.from(new Set([...episAImplementarGlobal, ...epiMeasuresImpl]));
+
+          // Medidas (M/N): TUDO — todo EPI também é medida
+          const medidasExistentes = Array.from(new Set([
+            ...generalMeasuresExist,
+            ...epiMeasuresExist,
+            ...episExistentesGlobal,
+          ]));
+          const medidasAImplementar = Array.from(new Set([
+            ...generalMeasuresImpl,
+            ...epiMeasuresImpl,
+            ...episAImplementarGlobal,
+          ]));
 
           return {
             riscoNome,
