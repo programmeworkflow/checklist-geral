@@ -1,28 +1,24 @@
 import { useEffect, useState } from "react";
 import { CloudOff, CloudUpload, Download, X } from "lucide-react";
+import { onPendingChange } from "@/lib/syncManager";
 
 /**
  * Pequeno indicador no canto da tela:
- * - Online + sem prompt → invisível
- * - Offline → pill amarelo "Modo offline"
- * - Sincronizando após voltar → pill azul "Sincronizando…"
+ * - Online + 0 pendências → invisível
+ * - Offline → pill amarelo "Modo offline · N pendentes"
+ * - Online com pendências → pill azul "Sincronizando N…"
  * - PWA instalável → pill com botão "Instalar app" (1x por sessão)
  */
 export function OfflineIndicator() {
   const [online, setOnline] = useState(navigator.onLine);
-  const [showSync, setShowSync] = useState(false);
+  const [pending, setPending] = useState(0);
   const [installEvent, setInstallEvent] = useState<any>(null);
   const [installDismissed, setInstallDismissed] = useState(
     () => sessionStorage.getItem("vistec_install_dismissed") === "1"
   );
 
   useEffect(() => {
-    const onUp = () => {
-      setOnline(true);
-      // mostra "sincronizando" por 3s quando volta
-      setShowSync(true);
-      setTimeout(() => setShowSync(false), 3500);
-    };
+    const onUp = () => setOnline(true);
     const onDown = () => setOnline(false);
     window.addEventListener("online", onUp);
     window.addEventListener("offline", onDown);
@@ -33,10 +29,13 @@ export function OfflineIndicator() {
     };
     window.addEventListener("beforeinstallprompt", onInstall);
 
+    const unsubscribe = onPendingChange(setPending);
+
     return () => {
       window.removeEventListener("online", onUp);
       window.removeEventListener("offline", onDown);
       window.removeEventListener("beforeinstallprompt", onInstall);
+      unsubscribe();
     };
   }, []);
 
@@ -52,19 +51,21 @@ export function OfflineIndicator() {
     setInstallDismissed(true);
   };
 
-  // Prioridade: offline > sync > install
+  // Prioridade: offline > sincronizando-pendentes > install
   if (!online) {
     return (
       <Pill variant="warning" icon={<CloudOff className="h-3.5 w-3.5" />}>
-        Modo offline — alterações ficam pendentes
+        {pending > 0
+          ? `Modo offline · ${pending} alteração(ões) salva(s) localmente`
+          : 'Modo offline — alterações ficam pendentes'}
       </Pill>
     );
   }
 
-  if (showSync) {
+  if (pending > 0) {
     return (
       <Pill variant="info" icon={<CloudUpload className="h-3.5 w-3.5" />}>
-        Sincronizando…
+        Sincronizando {pending}…
       </Pill>
     );
   }

@@ -1,6 +1,18 @@
-// Supabase-based data store
+// Local-first data store: IndexedDB (idb-keyval) é a fonte de verdade
+// imediata. As operações aplicam local primeiro e enfileiram na outbox;
+// o syncManager reconcilia com o Supabase quando há rede. Funciona 100%
+// offline em qualquer navegador (incluindo Safari/iOS).
 import { supabase } from './supabase';
 import { toDb, fromDb } from './columnMap';
+import {
+  getCachedTable,
+  setCachedTable,
+  upsertCacheRow,
+  patchCacheRow,
+  removeCacheRow,
+  enqueueOutbox,
+} from './localCache';
+import { triggerSync } from './syncManager';
 
 // ============================================
 // TYPES (unchanged)
@@ -64,49 +76,103 @@ export interface CrudStore<T extends { id: string }> {
   table: string;
 }
 
+/** Refresh em segundo plano: busca a tabela inteira do Supabase, atualiza
+ *  o cache local. Se offline ou erro, ignora silenciosamente. */
+async function refreshFromServer<T extends { id: string }>(table: string): Promise<T[] | null> {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return null;
+  try {
+    const { data, error } = await supabase.from(table).select('*');
+    if (error || !data) return null;
+    const items = data.map(row => fromDb(table, row) as T);
+    await setCachedTable(table, items);
+    return items;
+  } catch {
+    return null;
+  }
+}
+
 function createCrud<T extends { id: string }>(table: string): CrudStore<T> {
-  const fail = (op: string, error: any): never => {
-    console.error(`[${table}] ${op} error:`, error);
-    throw new Error(`${table}.${op}: ${error?.message || error?.details || 'falha desconhecida'}`);
-  };
+  // refresh-em-segundo-plano dispara só uma vez por sessão por tabela
+  // (depois fica nas mãos do syncManager.pull periódico)
+  let firstFetchDone = false;
+
   return {
     table,
+
+    /** Local-first read. Retorna o cache imediatamente; se for primeira
+     *  leitura da sessão, dispara um pull do servidor em background pra
+     *  atualizar o cache na próxima chamada. */
     getAll: async (): Promise<T[]> => {
-      const { data, error } = await supabase.from(table).select('*');
-      if (error) fail('getAll', error);
-      return (data || []).map(row => fromDb(table, row) as T);
+      const cached = await getCachedTable<T>(table);
+
+      if (!firstFetchDone) {
+        firstFetchDone = true;
+        const fresh = await refreshFromServer<T>(table);
+        if (fresh) return fresh;
+      }
+
+      if (cached) return cached;
+
+      // Cache vazio E primeira fetch falhou → tenta novamente uma vez
+      const fresh = await refreshFromServer<T>(table);
+      return fresh || [];
     },
+
     get: async (id: string): Promise<T | undefined> => {
-      const { data, error } = await supabase.from(table).select('*').eq('id', id).maybeSingle();
-      if (error) fail('get', error);
-      return data ? fromDb(table, data) as T : undefined;
+      const cached = await getCachedTable<T>(table);
+      const local = cached?.find(r => r.id === id);
+      if (local) return local;
+
+      // Não tinha local — tenta servidor
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) return undefined;
+      try {
+        const { data } = await supabase.from(table).select('*').eq('id', id).maybeSingle();
+        if (!data) return undefined;
+        const row = fromDb(table, data) as T;
+        await upsertCacheRow(table, row);
+        return row;
+      } catch {
+        return undefined;
+      }
     },
+
+    /** Aplica no cache LOCAL imediatamente, enfileira pro Supabase. */
     add: async (item: Omit<T, 'id'>): Promise<T> => {
       const id = genId();
-      const row = toDb(table, { ...item, id });
-      const { data, error } = await supabase.from(table).insert(row).select().single();
-      if (error) fail('add', error);
-      return fromDb(table, data) as T;
+      const row = { ...item, id } as T;
+      await upsertCacheRow(table, row);
+      await enqueueOutbox({ op: 'insert', table, row: toDb(table, row) });
+      triggerSync();
+      return row;
     },
+
     update: async (id: string, partial: Partial<T>): Promise<T | undefined> => {
-      const row = toDb(table, partial);
-      delete row.id; // never update PK
-      const { data, error } = await supabase.from(table).update(row).eq('id', id).select().maybeSingle();
-      if (error) fail('update', error);
-      return data ? fromDb(table, data) as T : undefined;
+      const updated = await patchCacheRow<T>(table, id, partial);
+      const dbPartial = toDb(table, partial);
+      delete dbPartial.id;
+      await enqueueOutbox({ op: 'update', table, rowId: id, partial: dbPartial });
+      triggerSync();
+      return updated;
     },
+
     remove: async (id: string): Promise<void> => {
-      const { error } = await supabase.from(table).delete().eq('id', id);
-      if (error) fail('remove', error);
+      await removeCacheRow(table, id);
+      await enqueueOutbox({ op: 'delete', table, rowId: id });
+      triggerSync();
     },
+
     setAll: async (items: T[]): Promise<void> => {
-      const delRes = await supabase.from(table).delete().neq('id', '___none___');
-      if (delRes.error) fail('setAll(delete)', delRes.error);
-      if (items.length > 0) {
-        const rows = items.map(i => toDb(table, i));
-        const insRes = await supabase.from(table).insert(rows);
-        if (insRes.error) fail('setAll(insert)', insRes.error);
+      // setAll é raramente usado; mantém comportamento de sobrescrever local + enfileirar
+      const existing = (await getCachedTable<T>(table)) || [];
+      // delete cada existing, insere cada novo — fica na outbox
+      for (const old of existing) {
+        await enqueueOutbox({ op: 'delete', table, rowId: old.id });
       }
+      for (const it of items) {
+        await enqueueOutbox({ op: 'insert', table, row: toDb(table, it) });
+      }
+      await setCachedTable(table, items);
+      triggerSync();
     },
   };
 }

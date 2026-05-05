@@ -2,6 +2,10 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { registerSW } from "virtual:pwa-register";
+import { startSync } from "./lib/syncManager";
+
+// Inicia o sync local→Supabase. Idempotente: pode ser chamado múltiplas vezes.
+startSync();
 
 // Service Worker — autoUpdate: ativa nova versão automaticamente em
 // todos PCs/abas sem precisar de hard refresh ou interação manual.

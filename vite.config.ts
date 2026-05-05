@@ -107,43 +107,11 @@ export default defineConfig(({ mode }) => ({
               cacheableResponse: { statuses: [0, 200] },
             },
           },
-          // Mutations (POST/PATCH/PUT/DELETE) — Background Sync
-          {
-            urlPattern:
-              /^https:\/\/znbcxzbexjdexpsmjpli\.supabase\.co\/rest\/v1\/.*/,
-            handler: "NetworkOnly",
-            method: "POST",
-            options: {
-              backgroundSync: {
-                name: "supabase-mutations-queue",
-                options: { maxRetentionTime: 60 * 24 }, // 24h
-              },
-            },
-          },
-          {
-            urlPattern:
-              /^https:\/\/znbcxzbexjdexpsmjpli\.supabase\.co\/rest\/v1\/.*/,
-            handler: "NetworkOnly",
-            method: "PATCH",
-            options: {
-              backgroundSync: {
-                name: "supabase-mutations-queue",
-                options: { maxRetentionTime: 60 * 24 },
-              },
-            },
-          },
-          {
-            urlPattern:
-              /^https:\/\/znbcxzbexjdexpsmjpli\.supabase\.co\/rest\/v1\/.*/,
-            handler: "NetworkOnly",
-            method: "DELETE",
-            options: {
-              backgroundSync: {
-                name: "supabase-mutations-queue",
-                options: { maxRetentionTime: 60 * 24 },
-              },
-            },
-          },
+          // Mutations: NÃO interceptamos mais. A persistência offline é
+          // feita pela outbox local em IndexedDB (src/lib/localCache.ts) +
+          // syncManager.ts. Vantagens: funciona em iOS Safari (que não
+          // tem Background Sync API), sobrevive ao fechamento do app,
+          // e tem visibilidade total no client (contador de pendentes).
         ],
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api\//, /^\/rest\//, /^\/storage\//],
