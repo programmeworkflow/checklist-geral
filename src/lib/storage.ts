@@ -11,6 +11,7 @@ import {
   patchCacheRow,
   removeCacheRow,
   enqueueOutbox,
+  getOutbox,
 } from './localCache';
 import { triggerSync } from './syncManager';
 
@@ -76,16 +77,54 @@ export interface CrudStore<T extends { id: string }> {
   table: string;
 }
 
-/** Refresh em segundo plano: busca a tabela inteira do Supabase, atualiza
- *  o cache local. Se offline ou erro, ignora silenciosamente. */
+/** Aplica as ops pendentes da outbox SOBRE uma lista vinda do servidor.
+ *  Crítico: evita perder mutations locais que ainda não subiram. */
+async function applyPendingToList<T extends { id: string }>(
+  table: string,
+  serverList: T[]
+): Promise<T[]> {
+  const outbox = await getOutbox();
+  const pendingForTable = outbox.filter(op => op.table === table);
+  if (pendingForTable.length === 0) return serverList;
+
+  const map = new Map<string, T>();
+  for (const r of serverList) map.set(r.id, r);
+
+  for (const op of pendingForTable) {
+    if (op.op === 'insert') {
+      // garante que o registro está presente — converte de DB shape pra frontend
+      const localRow = fromDb(table, op.row) as T;
+      map.set(localRow.id, { ...(map.get(localRow.id) || {} as T), ...localRow });
+    } else if (op.op === 'update') {
+      const partial = fromDb(table, op.partial);
+      const existing = map.get(op.rowId);
+      if (existing) map.set(op.rowId, { ...existing, ...partial });
+      else map.set(op.rowId, { id: op.rowId, ...partial } as T);
+    } else if (op.op === 'delete') {
+      map.delete(op.rowId);
+    }
+  }
+  return Array.from(map.values());
+}
+
+/** Refresh em segundo plano: busca a tabela inteira do Supabase, mescla
+ *  com a outbox local (preserva mutações pendentes), atualiza cache.
+ *  Tem timeout de 6s — em rede ruim, prefere usar cache do que travar a UI.
+ *  Se offline ou erro, ignora silenciosamente. */
 async function refreshFromServer<T extends { id: string }>(table: string): Promise<T[] | null> {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return null;
   try {
-    const { data, error } = await supabase.from(table).select('*');
+    const fetchPromise = supabase.from(table).select('*');
+    const timeoutPromise = new Promise<{ data: null; error: any }>((resolve) =>
+      setTimeout(() => resolve({ data: null, error: { message: 'timeout' } }), 6000)
+    );
+    const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
     if (error || !data) return null;
-    const items = data.map(row => fromDb(table, row) as T);
-    await setCachedTable(table, items);
-    return items;
+    const serverItems = data.map(row => fromDb(table, row) as T);
+    // Re-aplica tudo que ainda está pendente na outbox por cima do snapshot
+    const merged = await applyPendingToList(table, serverItems);
+    await setCachedTable(table, merged);
+    return merged;
   } catch {
     return null;
   }

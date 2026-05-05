@@ -26,6 +26,9 @@ import {
 let running = false;
 let pollerStarted = false;
 const listeners = new Set<(pending: number) => void>();
+const errorListeners = new Set<(err: { table: string; op: string; message: string }) => void>();
+let lastSuccessAt: number | null = null;
+const successListeners = new Set<(ts: number) => void>();
 
 async function notifyListeners() {
   if (listeners.size === 0) return;
@@ -43,53 +46,88 @@ export function onPendingChange(cb: (pending: number) => void): () => void {
   return () => { listeners.delete(cb); };
 }
 
-async function applyOp(op: OutboxOp): Promise<{ ok: boolean; transient: boolean }> {
+/** Subscribe to permanent sync errors (schema-level rejections). */
+export function onSyncError(cb: (err: { table: string; op: string; message: string }) => void): () => void {
+  errorListeners.add(cb);
+  return () => { errorListeners.delete(cb); };
+}
+
+/** Subscribe to successful syncs (each op that flushed). */
+export function onSyncSuccess(cb: (ts: number) => void): () => void {
+  successListeners.add(cb);
+  if (lastSuccessAt) { try { cb(lastSuccessAt); } catch {} }
+  return () => { successListeners.delete(cb); };
+}
+
+function fireError(err: { table: string; op: string; message: string }) {
+  for (const cb of errorListeners) {
+    try { cb(err); } catch {}
+  }
+}
+
+function isTransientError(error: any): boolean {
+  // Sem mensagem → provavelmente erro de rede capturado pelo wrapper Supabase
+  if (!error) return false;
+  // FetchError / NetworkError / TypeError do fetch nativo
+  const msg = String(error.message || '').toLowerCase();
+  if (msg.includes('failed to fetch') || msg.includes('networkerror') || msg.includes('load failed')) return true;
+  // 408 / 5xx
+  const status = (error as any).status;
+  if (status === 408 || status === 429 || (status >= 500 && status < 600)) return true;
+  return false;
+}
+
+async function applyOp(op: OutboxOp): Promise<{ ok: boolean; transient: boolean; error?: any }> {
   try {
     if (op.op === 'insert') {
       const { error } = await supabase.from(op.table).insert(op.row);
-      if (error) {
-        // 23505 = unique_violation: já foi inserido (provável retry após sucesso)
-        // 409 = conflict
-        if ((error as any).code === '23505' || (error as any).status === 409) {
-          return { ok: true, transient: false };
-        }
-        // Erro de schema/PostgREST: NÃO transient, descarta a op para não bloquear a fila
-        if ((error as any).code?.startsWith?.('PGRST')) {
-          console.warn('[sync] descartando op com erro de schema:', op, error);
-          return { ok: true, transient: false };
-        }
-        return { ok: false, transient: true };
+      if (!error) return { ok: true, transient: false };
+      // 23505 = unique_violation: provável retry após sucesso. Trata como ok.
+      if ((error as any).code === '23505' || (error as any).status === 409) {
+        return { ok: true, transient: false };
       }
-      return { ok: true, transient: false };
+      if (isTransientError(error)) return { ok: false, transient: true, error };
+      // Erro permanente: dispara notificação visível e descarta
+      fireError({
+        table: op.table,
+        op: 'insert',
+        message: (error as any).message || (error as any).details || 'erro desconhecido',
+      });
+      console.error('[sync] insert FALHOU permanentemente:', op, error);
+      return { ok: true, transient: false, error };
     }
+
     if (op.op === 'update') {
       const { error } = await supabase.from(op.table).update(op.partial).eq('id', op.rowId);
-      if (error) {
-        if ((error as any).code?.startsWith?.('PGRST')) {
-          console.warn('[sync] descartando update com erro de schema:', op, error);
-          return { ok: true, transient: false };
-        }
-        return { ok: false, transient: true };
-      }
-      return { ok: true, transient: false };
+      if (!error) return { ok: true, transient: false };
+      if (isTransientError(error)) return { ok: false, transient: true, error };
+      fireError({
+        table: op.table,
+        op: 'update',
+        message: (error as any).message || (error as any).details || 'erro desconhecido',
+      });
+      console.error('[sync] update FALHOU permanentemente:', op, error);
+      return { ok: true, transient: false, error };
     }
+
     if (op.op === 'delete') {
       const { error } = await supabase.from(op.table).delete().eq('id', op.rowId);
-      if (error) {
-        // 404 = já não existe; ok
-        if ((error as any).status === 404) return { ok: true, transient: false };
-        if ((error as any).code?.startsWith?.('PGRST')) {
-          console.warn('[sync] descartando delete com erro de schema:', op, error);
-          return { ok: true, transient: false };
-        }
-        return { ok: false, transient: true };
-      }
-      return { ok: true, transient: false };
+      if (!error) return { ok: true, transient: false };
+      if ((error as any).status === 404) return { ok: true, transient: false };
+      if (isTransientError(error)) return { ok: false, transient: true, error };
+      fireError({
+        table: op.table,
+        op: 'delete',
+        message: (error as any).message || (error as any).details || 'erro desconhecido',
+      });
+      console.error('[sync] delete FALHOU permanentemente:', op, error);
+      return { ok: true, transient: false, error };
     }
+
     return { ok: true, transient: false };
   } catch (err) {
-    // Erro de rede: transient. Tenta de novo.
-    return { ok: false, transient: true };
+    // Catch-all: se qualquer exceção rolou, considera transient pra reintentar
+    return { ok: false, transient: true, error: err };
   }
 }
 
@@ -105,19 +143,24 @@ async function processOutbox() {
       const result = await applyOp(head);
       if (result.ok) {
         await popOutboxFront(head.id);
+        lastSuccessAt = Date.now();
+        for (const cb of successListeners) {
+          try { cb(lastSuccessAt); } catch {}
+        }
         await notifyListeners();
-      } else if (result.transient) {
-        // Rede caiu / servidor instável: para o loop, tenta de novo no próximo trigger
-        break;
       } else {
-        // Erro permanente já foi tratado em applyOp (descarta)
-        await popOutboxFront(head.id);
-        await notifyListeners();
+        // Tudo que não é "ok" é tratado como transient — para o loop, tenta de novo no próximo trigger
+        break;
       }
     }
   } finally {
     running = false;
   }
+}
+
+/** Force a sync attempt (used by manual button). Resolves when a pass finishes. */
+export async function forceSync(): Promise<void> {
+  await processOutbox();
 }
 
 /** Disparado por código que acabou de fazer uma mutação local. */

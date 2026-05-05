@@ -520,6 +520,7 @@ const Checklist = () => {
 
     try {
       const payload = buildPayload(false);
+      const wasOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
       if (draftId) {
         // Promove o rascunho a checklist final
         await checklistsStore.update(draftId, payload as any);
@@ -527,12 +528,19 @@ const Checklist = () => {
         const created = await checklistsStore.add(payload as any);
         setDraftId(created.id);
       }
+      // invalidateQueries só marca como stale, refetch é async e não-bloqueante
       qc.invalidateQueries({ queryKey: ['checklists'] });
-      toast.success('Checklist salvo com sucesso!');
+      if (wasOffline) {
+        toast.success('Checklist salvo localmente — sincroniza ao voltar a internet.');
+      } else {
+        toast.success('Checklist salvo com sucesso!');
+      }
       setShowReport(true);
     } catch (err: any) {
       console.error('Save checklist failed:', err);
-      toast.error(`Falha ao salvar: ${err?.message || 'erro desconhecido'}`);
+      // Storage local-first NUNCA deve lançar exceção em fluxo normal — se chegou
+      // aqui é um bug do IndexedDB ou estrutura inválida no payload
+      toast.error(`Falha ao salvar: ${err?.message || 'erro desconhecido'}. Tente recarregar a página.`);
     }
   };
 

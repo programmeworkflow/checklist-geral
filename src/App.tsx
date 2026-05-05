@@ -7,6 +7,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppLayout } from "@/components/AppLayout";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { seedDefaults } from "@/lib/storage";
+import { onSyncError } from "@/lib/syncManager";
+import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import Dashboard from "./pages/Dashboard";
 import ChecklistList from "./pages/ChecklistList";
@@ -87,6 +89,15 @@ function ProtectedRoutes() {
 
 const App = () => {
   useEffect(() => { seedDefaults(); }, []);
+
+  // Sync errors visíveis: o syncManager descarta ops com erro permanente
+  // (PGRST204, etc.). Avisamos o usuário pra ele saber que aquele save
+  // específico não foi pro servidor (raro — geralmente é mismatch de schema).
+  useEffect(() => {
+    return onSyncError(({ table, op, message }) => {
+      toast.error(`Falha ao sincronizar ${op} em ${table}: ${message}`, { duration: 8000 });
+    });
+  }, []);
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

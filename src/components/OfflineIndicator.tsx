@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { CloudOff, CloudUpload, Download, X } from "lucide-react";
-import { onPendingChange } from "@/lib/syncManager";
+import { CloudOff, CloudUpload, Download, X, RefreshCw } from "lucide-react";
+import { onPendingChange, forceSync } from "@/lib/syncManager";
 
 /**
  * Pequeno indicador no canto da tela:
@@ -66,6 +66,13 @@ export function OfflineIndicator() {
     return (
       <Pill variant="info" icon={<CloudUpload className="h-3.5 w-3.5" />}>
         Sincronizando {pending}…
+        <button
+          onClick={() => { void forceSync(); }}
+          title="Forçar sincronização agora"
+          className="ml-2 inline-flex items-center justify-center rounded-full p-0.5 hover:bg-white/20"
+        >
+          <RefreshCw className="h-3 w-3" />
+        </button>
       </Pill>
     );
   }
